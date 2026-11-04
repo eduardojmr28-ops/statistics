@@ -301,7 +301,7 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
       <div class="card" id="tkGrupos"></div>
       <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
       <div class="card">
-        <div class="card-h"><div><h2>Resumen</h2><p>Sucursales que alcanzan el mínimo de su grupo</p></div></div>
+        <div class="card-h"><div><h2>Resumen</h2><p>Sucursales que alcanzan el mínimo de su grupo. Anillo exterior: mes actual; interior: mes anterior</p></div></div>
         <div class="chart" style="height:200px"><canvas id="chTkDona" aria-label="Sucursales que alcanzan el ticket mínimo"></canvas></div>
         <ul class="legend" id="tkLeg"></ul>
       </div>
@@ -862,15 +862,16 @@ function renderTicket(F,mes,ant){
       {label:cap(ant),data:g.rows.map(x=>x.tA),backgroundColor:css('--ref'),borderRadius:3}],
       {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];if(c.datasetIndex)return[`${cap(ant)}: ${f$(x.tA)}`,`Cambio a ${cap(mes)}: ${x.t>=x.tA?'+':'−'}${f$(Math.abs(x.t-x.tA))} (${fP((x.t-x.tA)/x.tA)})`];return[`${cap(mes)}: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,x.porCli?`${fN(x.cliAct)} clientes (el archivo no trae facturas)`:`${fN(x.fac)} facturas`];}});
     const o=charts['chTk'+g.n].options;o.scales.x.suggestedMax=max;o.plugins.legend.labels.generateLabels=()=>[[cap(mes),'--good'],[cap(ant),'--ref']].map(([text,v])=>({text,fillStyle:css(v),strokeStyle:css(v),fontColor:css('--muted')}));charts['chTk'+g.n].update();}
-  const con=G.filter(g=>g.rows.length),ok=con.reduce((s,g)=>s+g.rows.filter(x=>x.t>=g.min).length,0),cA=con.flatMap(g=>g.rows.filter(x=>x.tA!=null).map(x=>x.tA>=g.min)),tot=con.reduce((s,g)=>s+g.rows.length,0);
+  const con=G.filter(g=>g.rows.length),ok=con.reduce((s,g)=>s+g.rows.filter(x=>x.t>=g.min).length,0),cA=con.flatMap(g=>g.rows.filter(x=>x.tA!=null).map(x=>x.tA>=g.min)),okA=cA.filter(Boolean).length,tot=con.reduce((s,g)=>s+g.rows.length,0);
   const centro={id:'centro',afterDraw(c){const {left,right,top,bottom}=c.chartArea,ctx=c.ctx,x=(left+right)/2,y=(top+bottom)/2;ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillStyle=css('--ink');ctx.font=`750 1.6rem ${css('--f-display')}`;ctx.fillText(fP(ok/tot,0),x,y-8);
-    ctx.fillStyle=css('--muted');ctx.font=`500 12px ${css('--f-body')}`;ctx.fillText(`${ok} de ${tot}`,x,y+16);ctx.restore();}};
-  chart('chTkDona',{type:'doughnut',plugins:[centro],data:{labels:['Alcanzan el mínimo','Por debajo'],datasets:[{data:[ok,tot-ok],backgroundColor:[css('--good'),css('--bad')],borderWidth:0}]},
-    options:{maintainAspectRatio:false,animation:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} sucursales`}}}}});
+    ctx.fillStyle=css('--muted');ctx.font=`500 12px ${css('--f-body')}`;ctx.fillText(`${ok} de ${tot}`,x,y+14);if(cA.length)ctx.fillText(`${cap(ant).split(' ')[0].slice(0,3)}: ${fP(okA/cA.length,0)}`,x,y+30);ctx.restore();}};
+  chart('chTkDona',{type:'doughnut',plugins:[centro],data:{labels:['Alcanzan el mínimo','Por debajo'],datasets:[{label:cap(mes),data:[ok,tot-ok],backgroundColor:[css('--good'),css('--bad')],borderWidth:0},
+    ...(cA.length?[{label:cap(ant),data:[okA,cA.length-okA],backgroundColor:[css('--good')+'70',css('--bad')+'70'],borderWidth:0}]:[])]},
+    options:{maintainAspectRatio:false,animation:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label} · ${c.label}: ${c.parsed} sucursales`}}}}});
   $('#tkLeg').innerHTML=con.map(g=>{const k=g.rows.filter(x=>x.t>=g.min).length;
     return `<li><span class="dot" style="background:var(${k===g.rows.length?'--good':k?'--warn':'--bad'})"></span>Grupo ${g.n} · ${f$(g.min)}<b>${k} de ${g.rows.length} · ${fP(k/g.rows.length,0)}</b></li>`;}).join('')+
-    (cA.length?`<li><span class="dot" style="background:var(--ref)"></span>En ${esc(cap(ant))}<b>${cA.filter(Boolean).length} de ${cA.length} · ${fP(cA.filter(Boolean).length/cA.length,0)}</b></li>`:'');
+    (cA.length?`<li><span class="dot" style="background:color-mix(in srgb,var(--good) 45%,transparent)"></span>Anillo interior: ${esc(cap(ant))}<b>${cA.filter(Boolean).length} de ${cA.length} · ${fP(cA.filter(Boolean).length/cA.length,0)}</b></li>`:'');
   $('#txTicket').innerHTML=G.filter(g=>g.rows.length).map(g=>{const no=g.rows.filter(x=>x.t<g.min);
     return `<b>Grupo ${g.n}</b>: ${g.rows.length-no.length} de ${g.rows.length} alcanzan ${f$(g.min)}.`+(no.length?` Por debajo: ${no.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
       (()=>{const c=g.rows.filter(x=>x.tA),up=c.filter(x=>x.t>x.tA).length;return c.length?` Frente a ${esc(cap(ant))} el ticket subió en ${up} y bajó en ${c.length-up}.`:'';})();}).join('<br>')+
