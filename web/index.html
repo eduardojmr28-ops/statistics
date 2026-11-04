@@ -299,11 +299,18 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
   <div class="view" id="v-ticket" hidden>
     <section class="sec body" id="s-ticket">
       <div class="card" id="tkGrupos"></div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="card">
+        <div class="card-h"><div><h2>Resumen</h2><p>Sucursales que alcanzan el mínimo de su grupo</p></div></div>
+        <div class="chart" style="height:200px"><canvas id="chTkDona" aria-label="Sucursales que alcanzan el ticket mínimo"></canvas></div>
+        <ul class="legend" id="tkLeg"></ul>
+      </div>
       <div class="card read">
         <h3>Cómo leer</h3>
         <p class="formula">Ticket promedio = venta del mes ÷ facturas. Cada grupo tiene su mínimo (línea punteada): verde si la sucursal lo alcanza, rojo si queda por debajo.</p>
         <h3>Análisis</h3>
         <p class="an" id="txTicket"></p>
+      </div>
       </div>
     </section>
   </div>
@@ -852,7 +859,15 @@ function renderTicket(F){
     const max=Math.max(g.min,...g.rows.map(x=>x.t))*1.1;
     hbar('chTk'+g.n,g.rows.map(x=>cap(x.nombre)),[{label:'Ticket promedio',data:g.rows.map(x=>x.t),backgroundColor:g.rows.map(x=>x.t>=g.min?css('--good'):css('--bad')),borderRadius:3}],
       {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];return[`Ticket: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,x.porCli?`${fN(x.cliAct)} clientes (el archivo no trae facturas)`:`${fN(x.fac)} facturas`];}});
-    charts['chTk'+g.n].options.scales.x.max=max;charts['chTk'+g.n].update();}
+    charts['chTk'+g.n].options.scales.x.suggestedMax=max;charts['chTk'+g.n].update();}
+  const con=G.filter(g=>g.rows.length),ok=con.reduce((s,g)=>s+g.rows.filter(x=>x.t>=g.min).length,0),tot=con.reduce((s,g)=>s+g.rows.length,0);
+  const centro={id:'centro',afterDraw(c){const {left,right,top,bottom}=c.chartArea,ctx=c.ctx,x=(left+right)/2,y=(top+bottom)/2;ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=css('--ink');ctx.font=`750 1.6rem ${css('--f-display')}`;ctx.fillText(fP(ok/tot,0),x,y-8);
+    ctx.fillStyle=css('--muted');ctx.font=`500 12px ${css('--f-body')}`;ctx.fillText(`${ok} de ${tot}`,x,y+16);ctx.restore();}};
+  chart('chTkDona',{type:'doughnut',plugins:[centro],data:{labels:['Alcanzan el mínimo','Por debajo'],datasets:[{data:[ok,tot-ok],backgroundColor:[css('--good'),css('--bad')],borderWidth:0}]},
+    options:{maintainAspectRatio:false,animation:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} sucursales`}}}}});
+  $('#tkLeg').innerHTML=con.map(g=>{const k=g.rows.filter(x=>x.t>=g.min).length;
+    return `<li><span class="dot" style="background:var(${k===g.rows.length?'--good':k?'--warn':'--bad'})"></span>Grupo ${g.n} · ${f$(g.min)}<b>${k} de ${g.rows.length} · ${fP(k/g.rows.length,0)}</b></li>`;}).join('');
   $('#txTicket').innerHTML=G.filter(g=>g.rows.length).map(g=>{const no=g.rows.filter(x=>x.t<g.min);
     return `<b>Grupo ${g.n}</b>: ${g.rows.length-no.length} de ${g.rows.length} alcanzan ${f$(g.min)}.`+(no.length?` Por debajo: ${no.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'');}).join('<br>')+
     (sinGrupo.length?`<br>Sin grupo asignado: ${sinGrupo.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
