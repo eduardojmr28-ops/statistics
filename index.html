@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Statistics · Indicadores de Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell = fixed left menu + top bar + one view at a time; neutral greys with a single pharmacy-green accent (the hero KPI carries it) */
+:root{
+  --bg:#f2f2ef; --surface:#ffffff; --surface-2:#f7f7f4; --ink:#16181a; --muted:#686c71; --line:#e4e4df;
+  --accent:#0e7a63; --accent-ink:#ffffff; --accent-bg:#e2f1ec; --ref:#cfd2d6;
+  --good:#167a3e; --good-bg:#e3f3e8; --bad:#b4291b; --bad-bg:#fbe9e6; --warn:#a85a07; --warn-bg:#fcf0dc; --pod:#6a2fd0; --pod-bg:#eee7fc;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e0f10; --surface:#17181a; --surface-2:#1d1f21; --ink:#ececea; --muted:#9a9da2; --line:#2a2c2f;
+  --accent:#3cc6a3; --accent-ink:#06201a; --accent-bg:#13312a; --ref:#41454b;
+  --good:#4fd17f; --good-bg:#14301f; --bad:#f4776b; --bad-bg:#3a1b18; --warn:#f3b545; --warn-bg:#36290f; --pod:#ad8ff8; --pod-bg:#2a2142; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e0f10; --surface:#17181a; --surface-2:#1d1f21; --ink:#ececea; --muted:#9a9da2; --line:#2a2c2f;
+  --accent:#3cc6a3; --accent-ink:#06201a; --accent-bg:#13312a; --ref:#41454b;
+  --good:#4fd17f; --good-bg:#14301f; --bad:#f4776b; --bad-bg:#3a1b18; --warn:#f3b545; --warn-bg:#36290f; --pod:#ad8ff8; --pod-bg:#2a2142; color-scheme:dark;
+}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.5}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(1.5rem,2.6vw,1.95rem);font-weight:750;font-stretch:88%;letter-spacing:-.01em}
+h2{font-size:1.05rem;font-weight:700;font-stretch:92%}
+h3{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+td,.kpi b,.goals,.legend{font-variant-numeric:tabular-nums}
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px;padding:22px 14px;padding-left:max(14px,env(safe-area-inset-left,0px));background:var(--surface);border-right:1px solid var(--line);overflow-y:auto}
+.brand{display:flex;gap:10px;align-items:center;padding:0 8px}
+.logo{width:40px;height:40px;flex:none}
+.brand b{display:block;font-family:var(--f-display);font-size:1.05rem;font-weight:750;line-height:1.1}
+.brand small{color:var(--muted);font-size:.78rem}
+.menu{display:flex;flex-direction:column;gap:2px}
+.menu-h{margin:14px 10px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.menu button{font:inherit;font-weight:500;display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;color:var(--muted);padding:9px 10px;border-radius:10px;cursor:pointer}
+.menu button:hover{background:var(--surface-2);color:var(--ink)}
+.menu button[aria-current="page"]{background:var(--ink);color:var(--surface)}
+.menu button[aria-current="page"] .count{background:var(--surface);color:var(--ink)}
+.menu button:focus-visible,.btn:focus-visible,.seg button:focus-visible,select:focus-visible,.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{margin-left:auto;background:var(--surface-2);color:var(--muted);border-radius:999px;padding:0 8px;font-size:.75rem;font-weight:600}
+.side-foot{margin-top:auto;padding:12px;border-radius:12px;background:var(--surface-2);color:var(--muted);font-size:.78rem}
+
+.main{min-width:0;padding-block:22px 48px;padding-left:max(16px,min(32px,4vw));padding-right:max(16px,min(32px,4vw),env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between}
+.sub{color:var(--muted);margin:2px 0 0}
+.top-act{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 16px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.btn.sm{padding:5px 12px;font-size:.82rem}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.link{font:inherit;font-size:.84rem;font-weight:600;border:0;background:none;color:var(--accent);cursor:pointer;padding:2px 4px;border-radius:6px}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.seg button{font:inherit;font-size:.85rem;font-weight:500;border:0;background:none;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{margin:0;background:var(--surface);border:1px solid var(--line);padding:11px 14px;border-radius:12px;font-size:.88rem;color:var(--muted)}
+.note.warn{background:var(--warn-bg);border-color:transparent;color:var(--ink)}
+.empty{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:28px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
+.empty p{margin:4px 0 0;color:var(--muted)}
+
+.view{display:flex;flex-direction:column;gap:18px}
+.sec{display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.card-h p{margin:2px 0 0;color:var(--muted);font-size:.84rem}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:.9rem}
+.kpi-h i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:var(--ink)}
+.kpi b{font-family:var(--f-display);font-size:1.85rem;font-weight:750;font-stretch:88%;line-height:1.15;letter-spacing:-.01em}
+.kpi small{color:var(--muted);font-size:.82rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.kpi.hero{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kpi.hero small{color:inherit;opacity:.85}
+.kpi.hero .kpi-h i{border-color:color-mix(in srgb,var(--accent-ink) 35%,transparent);color:inherit}
+.kpi.hero .delta{background:color-mix(in srgb,var(--accent-ink) 18%,transparent);color:inherit}
+.delta{display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:999px;font-weight:700;font-size:.78rem}
+.delta.up{background:var(--good-bg);color:var(--good)} .delta.down{background:var(--bad-bg);color:var(--bad)}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+.nc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(360px,100%),1fr));gap:14px}
+.nc-t{display:flex;align-items:baseline;gap:8px;min-width:0}
+.nc-t span{color:var(--muted);font-family:var(--f-display);font-weight:700;font-size:.95rem}
+.nc-big{font-family:var(--f-display);font-size:1.6rem;font-weight:750;font-stretch:88%;color:var(--bad);line-height:1}
+.nc-dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:0}
+.nc-dl div{min-width:0}
+.nc-dl dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.nc-dl dd{margin:2px 0 0;font-weight:600;font-variant-numeric:tabular-nums}
+.nc-dl dd small{font-weight:400;color:var(--muted)}
+details.nc-com summary{cursor:pointer;font-weight:600;font-size:.86rem;color:var(--accent)}
+details.nc-com p{margin:8px 0 0}
+.res-bar{display:flex;align-items:center;gap:10px;font-weight:600}
+.res-bar select{min-width:min(280px,100%)}
+.bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.span2{grid-column:span 2}
+@media (max-width:1100px){.bento{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.span2{grid-column:span 2}}
+@media (max-width:700px){.bento{grid-template-columns:minmax(0,1fr)}.span2{grid-column:auto}}
+.chart{position:relative;width:100%}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
+.legend li{display:flex;align-items:center;gap:8px}
+.legend li b{margin-left:auto}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.goals{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:12px;max-height:340px;overflow-y:auto;font-size:.86rem}
+.goals li{display:flex;flex-direction:column;gap:5px}
+.goals .g-row{display:flex;justify-content:space-between;gap:8px}
+.goals .g-row span{color:var(--muted)}
+.track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.track i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.track i.ok{background:var(--good)}
+
+.body{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:1000px){.body{grid-template-columns:minmax(0,1fr)}}
+.read{display:flex;flex-direction:column;gap:10px;min-width:0}
+.read p{margin:0;max-width:65ch}
+.an{margin:0;background:var(--surface-2);padding:12px 14px;border-radius:12px;max-width:75ch}
+.formula{font-size:.86rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:10px}
+
+.tbl{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:.85rem;white-space:nowrap}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;background:var(--surface-2);position:sticky;top:0;z-index:1}
+thead tr.grp th{text-align:center;color:var(--ink);border-bottom:0}
+thead tr:nth-child(2) th{top:34px}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:2}
+th:first-child{background:var(--surface-2);z-index:3}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface-2)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:600}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.ok{background:var(--good-bg);color:var(--good)} .no{background:var(--bad-bg);color:var(--bad)}
+.tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:.66rem;font-weight:700;background:var(--pod-bg);color:var(--pod);letter-spacing:.04em}
+.bar{display:inline-flex;align-items:center;gap:6px}
+.bar i{display:inline-block;height:6px;border-radius:3px;background:var(--surface-2);width:60px;position:relative;overflow:hidden}
+.bar i u{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.heat td.h{min-width:42px;text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface);font-size:.84rem;color:var(--muted)}
+.chip b{display:block;font-family:var(--f-display);font-size:1.2rem;color:var(--ink)}
+ol.list{margin:0;padding-left:20px;font-size:.88rem} ol.list li{margin:3px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:100%}
+.quote{white-space:pre-line;font-size:.88rem}
+
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:26px;background:var(--surface);cursor:pointer;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop strong{font-family:var(--f-display);font-size:1.05rem}
+.drop p{margin:2px 0 0;color:var(--muted);font-size:.86rem;max-width:70ch}
+#archivos th,#archivos td{text-align:left;white-space:normal;vertical-align:top}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:12px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+  .brand small,.menu-h,.side-foot{display:none}
+  .menu{flex-direction:row;overflow-x:auto;min-width:0}
+  .menu button{width:auto;white-space:nowrap}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+<aside class="side">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="Logo de Statistics">
+      <defs>
+        <linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C6EFE0"/><stop offset="1" stop-color="#8FD9BE"/></linearGradient>
+        <linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ED8B6"/><stop offset="1" stop-color="#45B98F"/></linearGradient>
+        <linearGradient id="lg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2FB585"/><stop offset="1" stop-color="#0F7A5C"/></linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill="#04342C"/>
+      <rect x="13" y="36" width="15" height="15" rx="4" fill="url(#lg1)"/>
+      <rect x="23" y="27" width="15" height="24" rx="4" fill="url(#lg2)" opacity=".94"/>
+      <path d="M33 22a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4v17a12 12 0 0 1-12 12h-3z" fill="url(#lg3)"/>
+      <circle cx="44.5" cy="11.5" r="3" fill="#E1F5EE"/>
+    </svg>
+    <div><b>Statistics</b></div>
+  </div>
+  <nav class="menu" aria-label="Secciones">
+    <p class="menu-h">Análisis</p>
+    <button data-tab="resumen" data-title="Resumen" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Resumen</button>
+    <button data-tab="ventas" data-title="Indicador de ventas"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/></svg>Ventas</button>
+    <button data-tab="noconf" data-title="No conformes"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.5"/></svg>No conformes <span class="count" id="nNc" hidden></span></button>
+    <button data-tab="clientes" data-title="Frecuencia de clientes"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Clientes</button>
+    <button data-tab="depto" data-title="Farmacia y misceláneos"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/></svg>Farmacia y misc.</button>
+    <button data-tab="sucursal" data-title="Detalle de sucursal"><svg class="ic" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9M4 9v11h16V9M3 9h18M9 20v-6h6v6"/></svg>Sucursal</button>
+    <p class="menu-h" id="menuCons" hidden>Consolidado</p>
+    <button data-tab="auditoria" data-title="Indicador de auditoría" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/></svg>Auditoría</button>
+    <button data-tab="merma" data-title="Indicador de merma" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/></svg>Merma</button>
+    <button data-tab="incidencias" data-title="Incidencias de reporte de venta" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9.5 17H2.5zM12 10v4M12 17v.5"/></svg>Incidencias</button>
+    <p class="menu-h">Datos</p>
+    <button data-tab="archivos" data-title="Archivos"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Archivos <span class="count" id="nArch">0</span></button>
+  </nav>
+  <p class="side-foot">Los archivos cargados quedan guardados en el tablero. Los ve quien tenga acceso al enlace.</p>
+</aside>
+
+<div class="main">
+  <header class="top">
+    <div><h1 id="vTitle">Resumen</h1><p class="sub" id="vSub">Sin datos cargados</p></div>
+    <div class="top-act">
+      <div class="seg" id="segF" role="group" aria-label="Tipo de sucursal">
+        <button aria-pressed="true" data-f="todas">Todas</button>
+        <button aria-pressed="false" data-f="estandar">Estándar</button>
+        <button aria-pressed="false" data-f="poderoso">Poderoso</button>
+      </div>
+      <button class="btn primary" data-tab="archivos"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>Cargar archivos</button>
+    </div>
+  </header>
+
+  <div class="notes">
+    <div class="empty" id="vacio">
+      <div><h2>Todavía no hay datos</h2><p>Carga las estadísticas de ventas de las sucursales (y las del mes anterior, para comparar) y el tablero se llena solo.</p></div>
+      <button class="btn primary" data-tab="archivos">Ir a Archivos</button>
+    </div>
+    <p class="note warn" id="noAnt" hidden></p>
+    <p class="note warn" id="sinPareja" hidden></p>
+    <p class="note warn" id="dbNote" role="status" hidden></p>
+  </div>
+
+  <div class="view" id="v-resumen">
+    <div class="res-bar" id="resBar"><label for="selRes">Ver</label><select id="selRes"></select></div>
+    <div class="kpis" id="kpis"></div>
+    <section class="sec" id="s-tabla">
+      <div class="bento">
+        <div class="card span2" id="cardRes">
+          <div class="card-h"><div><h2>Venta contra meta</h2><p>Por sucursal, en dólares</p></div><button class="link" data-tab="ventas">Ver indicador →</button></div>
+          <div class="chart" style="height:280px"><canvas id="chRes" aria-label="Venta y meta por sucursal"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h2>Farmacia y misceláneos</h2><p>Venta total del mes</p></div></div>
+          <div class="chart" style="height:180px"><canvas id="chDona" aria-label="Reparto entre farmacia y misceláneos"></canvas></div>
+          <ul class="legend" id="donaLeg"></ul>
+        </div>
+        <div class="card" id="cardMetas">
+          <div class="card-h"><div><h2>Avance de metas</h2><p>% de la meta mensual alcanzado</p></div></div>
+          <ul class="goals" id="metas"></ul>
+        </div>
+        <div class="card span2">
+          <div class="card-h"><h2>Análisis del mes</h2></div>
+          <p class="an" id="txTabla"></p>
+          <div id="txSuc" hidden><h3>Comentario de la sucursal</h3><p class="an quote" id="txSucQ"></p></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div><h2>Comparativa por mes</h2><p id="mesSub"></p></div></div>
+        <div class="chart" style="height:260px"><canvas id="chMes" aria-label="Venta, meta y clientes por mes"></canvas></div>
+        <div class="tbl"><table id="tablaMes"></table></div>
+      </div>
+      <div class="card" id="cardTabla">
+        <div class="card-h"><div><h2>Tabla general por sucursal</h2><p>Ordenada por % de cumplimiento</p></div></div>
+        <div class="tbl"><table id="tabla"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-ventas" hidden>
+    <section class="sec body" id="s-ventas">
+      <div class="card"><div class="card-h"><h2>¿Qué sucursales llegaron a su meta?</h2></div><div class="chart" id="boxVentas"><canvas id="chVentas" aria-label="Cumplimiento de meta por sucursal"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">% cumplimiento = venta del mes ÷ meta establecida. Desde 100% la sucursal es <b>conforme</b>; por debajo, <b>no conforme</b>.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txVentas"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-noconf" hidden>
+    <section class="sec" id="s-noconf">
+      <div class="chips" id="ncChips"></div>
+      <p class="formula">Sucursales que no llegaron al 100% de su meta, de la más cercana a la más lejana. <b>Le faltó</b> = meta − venta. <b>Días en meta diaria</b> = días en que la venta del día alcanzó el promedio diario requerido.</p>
+      <div class="nc-grid" id="ncGrid"></div>
+    </section>
+  </div>
+
+  <div class="view" id="v-clientes" hidden>
+    <section class="sec body" id="cliBox">
+      <div class="card"><div class="card-h"><h2>Variación de clientes contra el mes anterior</h2></div><div class="chart" id="boxCli"><canvas id="chCli" aria-label="Variación de clientes por sucursal"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">Variación = (clientes del mes − clientes del mes anterior) ÷ clientes del mes anterior. Barras a la izquierda: la sucursal recibió menos gente.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txCli"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-depto" hidden>
+    <section class="sec body" id="s-farm">
+      <div class="card"><div class="card-h"><h2>Venta por departamento</h2></div><div class="chart" id="boxFarm"><canvas id="chFarm" aria-label="Venta de farmacia y misceláneos por sucursal"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">Los departamentos del sistema se agrupan en dos: farmacia y misceláneos. La barra completa es la venta del mes.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txFarm"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-sucursal" hidden>
+    <section class="sec" id="s-det">
+      <div class="card-h"><p class="sub">Elige la sucursal y el mes</p><select id="selSuc" aria-label="Sucursal"></select></div>
+      <div class="kpis" id="detKpis"></div>
+      <div class="body">
+        <div class="card"><div class="card-h"><h2>Venta diaria</h2></div><div class="chart" style="height:280px"><canvas id="chDia" aria-label="Venta diaria"></canvas></div></div>
+        <div class="card read"><h3>Análisis de la sucursal (del archivo)</h3><p class="an quote" id="txDet"></p></div>
+      </div>
+      <div class="two">
+        <div class="card"><h2>Productos más vendidos</h2><ol class="list" id="topVend"></ol></div>
+        <div class="card"><h2>Productos sin rotación</h2><ol class="list" id="sinRot"></ol></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-auditoria" hidden>
+    <section class="sec body" id="s-aud">
+      <div class="card"><div class="card-h"><h2>Auditorías internas y acciones correctivas</h2></div><div class="chart" id="boxAud"><canvas id="chAud" aria-label="Porcentaje de auditoría y acción correctiva"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula"><b>% Auditoría</b>: resultado de la auditoría interna de la sucursal. <b>% Acción C.</b>: avance de las acciones correctivas que salieron de esa auditoría. Una acción en 0% significa que no se ha corregido nada.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txAud"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-merma" hidden>
+    <section class="sec" id="s-merma">
+      <div class="chips" id="mermaChips"></div>
+      <div class="body">
+        <div class="card"><div class="card-h"><h2>Merma encontrada en auditoría</h2></div><div class="chart" id="boxMerma"><canvas id="chMerma" aria-label="Merma por sucursal"></canvas></div></div>
+        <div class="card read">
+          <h3>Cómo leer</h3>
+          <p class="formula">Merma = valor en dólares del producto perdido. El color indica su origen principal: faltante, vencido o dañado.</p>
+          <h3>Análisis</h3>
+          <p class="an" id="txMerma"></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-incidencias" hidden>
+    <section class="sec" id="s-inc">
+      <div class="body">
+        <div class="card"><div class="card-h"><h2>Incidencias por mes</h2></div><div class="chart" id="boxInc" style="height:260px"><canvas id="chInc" aria-label="Incidencias por mes"></canvas></div></div>
+        <div class="card read">
+          <h3>Cómo leer</h3>
+          <p class="formula">Cada incidencia es un reporte de venta que llegó con errores o fuera de tiempo. Menos es mejor.</p>
+          <h3>Análisis</h3>
+          <p class="an" id="txInc"></p>
+        </div>
+      </div>
+      <div class="card"><div class="tbl"><table id="heat" class="heat"></table></div></div>
+    </section>
+  </div>
+
+  <div class="view" id="v-archivos" hidden>
+    <div class="card" id="admin">
+      <div class="card-h"><h2>Administrador</h2><button class="btn sm" id="salir" hidden>Salir</button></div>
+      <p class="note" id="adminTxt">Solo el administrador puede subir o eliminar archivos. Escribe tu correo y te llegará un enlace para entrar.</p>
+      <form id="login" style="display:flex;gap:8px;flex-wrap:wrap"><input type="email" id="correo" required placeholder="nombre@empresa.com" aria-label="Correo del administrador" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit"><button class="btn primary" type="submit">Enviar enlace</button></form>
+    </div>
+    <label class="drop" id="drop" for="file">
+      <input type="file" id="file" multiple accept=".xls,.xlsx" style="position:absolute;opacity:0;width:1px;height:1px">
+      <span class="btn primary" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>Elegir archivos</span>
+      <span><strong>o suéltalos aquí</strong>
+        <p>Las <i>Estadísticas de ventas</i> de cada sucursal (.xls o .xlsx). Sube también las del mes anterior para ver la comparación.</p></span>
+    </label>
+    <div class="card">
+      <div class="card-h"><h2>Archivos cargados</h2><button class="btn sm danger" id="reset" hidden>Eliminar todos</button></div>
+      <p class="note" id="archVacio">Aún no has cargado archivos.</p>
+      <div class="tbl" id="archTbl" hidden><table id="archivos"></table></div>
+    </div>
+  </div>
+
+  <p class="note view-empty" id="viewEmpty" hidden>Los archivos cargados no traen datos para esta vista.</p>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// Datos del proyecto de Supabase (Project Settings > API). La clave "anon" es pública por diseño; nunca pongas aquí la "service_role".
+const SUPABASE_URL='PEGA_AQUI_LA_URL';
+const SUPABASE_ANON_KEY='PEGA_AQUI_LA_ANON_KEY';
+</script>
+
+<script id="parser">
+const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const norm=v=>v==null?'':String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+const num=v=>typeof v==='number'&&isFinite(v)?v:(typeof v==='string'&&v.trim()!==''&&isFinite(+v.replace(',','.'))?+v.replace(',','.'):null);
+// A month cell can hold the word ("OCTUBRE") or an Excel date (01/10/2026 is stored as a serial number).
+const mesDe=s=>MESES.find(m=>norm(s).includes(m))||(typeof s==='number'&&s>20000?MESES[XLSX.SSF.parse_date_code(s).m-1]:'');
+// Store names are typed differently on each sheet (EXPRESS TIPURO / TIPURO XPRESS, POD HOSPITAL / P. HOSPITAL); this key makes them match.
+const STOP=new Set(['EXPRESS','XPRESS','EXPPRESS','AV','LA','LAS','LOS','EL']);
+// Pairs confirmed by the chain; names outside SUCURSALES show in the "sin pareja" note so new ones can be added here.
+const ALIAS={'PLAZA PIAR':'PIAR','TIPURO HANADY':'TIPURO PALMA REAL'};
+// "TIPURO" alone (store code 07) is Palma Real; Tipuro Express files say "TIPURO EXPRESS" (code 14).
+const NOMBRES={'PRINCIPAL':'LAS BRISAS','AV BICENTENARIO':'AV BOLIVAR','AV LA PAZ':'PODEROSO AV LA PAZ','TIPURO':'TIPURO PALMA REAL'};
+const SUCURSALES=['AV BOLIVAR','GOBERNACION','EXPRESS CHIMBORAZO','JUNCAL','MERCADO','FLORESTA','PODEROSO','SAMANES','LA CRUZ','BOQUERON',
+  'POD HOSPITAL','PODEROSO TIPURO','SERVIMAS','HOSPITAL','EXPRESS TIPURO','GUARITOS','FURRIAL','LAS AVENIDAS','CORTIJOS','EXPRESS PIAR','PLAZA SIETE','LAS BRISAS',
+  'EJERCITO','PODEROSO AV LA PAZ','TIPURO PALMA REAL','COCUIZAS','PUNTA DE MATA','LA CASCADA','PARAMACONI','PARQUE MORICHAL'];
+function storeKey(name){
+  const k=norm(name).replace(/\(.*?\)/g,' ').replace(/[^A-Z0-9 ]/g,' ').split(' ').filter(Boolean)
+    .map(w=>w==='SIETE'?'7':w==='HANNADY'?'HANADY':w==='HOSP'?'HOSPITAL':(w==='POD'||w==='P')?'PODEROSO':w)
+    .filter(w=>!STOP.has(w)).join(' ');
+  return ALIAS[k]||k;
+}
+const cleanName=n=>{const c=norm(n).replace(/\(.*?\)/g,'').replace(/\s+/g,' ').trim();return NOMBRES[c]||c;};
+const isPoderoso=n=>storeKey(n).includes('PODEROSO');
+
+const grid=ws=>XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:true,raw:true});
+const at=(g,r,c)=>(g[r]||[])[c]??null;
+function findCell(g,pred){for(let r=0;r<g.length;r++){const row=g[r]||[];for(let c=0;c<row.length;c++)if(pred(norm(row[c])))return[r,c];}return null;}
+function nextVal(g,r,c){const row=g[r]||[];for(let i=c+1;i<row.length;i++)if(norm(row[i])!=='')return row[i];return null;}
+function sheet(wb,word){const n=wb.SheetNames.find(s=>norm(s).includes(word));return n?grid(wb.Sheets[n]):null;}
+// Reads a column list under a header: name at nameCol, stops at the first empty name.
+function listRows(g,h,nameCol,fn){const out=[];for(let r=h[0]+1;r<g.length;r++){const n=at(g,r,nameCol);if(!norm(n))break;const x=fn(r);if(x)out.push(x);}return out;}
+
+function parseConsolidado(wb,file){
+  const C={kind:'consolidado',file,ventas:[],clientes:{},mesesClientes:[],causas:[],auditoria:[],merma:[],incidencias:{meses:[],filas:[]}};
+  const v=sheet(wb,'INDICADOR VENTAS');
+  if(v){
+    const h=findCell(v,s=>s==='META ESTABLECIDA');
+    if(h)C.ventas=listRows(v,h,h[1]-1,r=>{const meta=num(at(v,r,h[1]));return meta==null?null:{nombre:cleanName(at(v,r,h[1]-1)),meta,real:num(at(v,r,h[1]+1))??0};});
+    for(let r=0;r<v.length;r++){
+      const row=v[r]||[],c=row.findIndex(x=>norm(x).startsWith('TOTAL DE CLIENTE'));
+      if(c<0)continue;
+      let hr=r-1;while(hr>=0&&(num(at(v,hr,c+1))!=null||!norm(at(v,hr,c+1))))hr--;
+      if(hr<0)continue;
+      const mes=mesDe(row[c])||norm(row[c]),lista=[];
+      for(let j=c+1;norm(at(v,hr,j));j++){const val=num(at(v,r,j));if(val!=null)lista.push({nombre:cleanName(at(v,hr,j)),valor:val});}
+      C.clientes[mes]=lista;C.mesesClientes.push(mes);
+    }
+    const a=findCell(v,s=>s==='ANALISIS DE DATOS');
+    if(a)C.causas=listRows(v,a,a[1],r=>{const row=v[r];const n=row.slice(a[1]+1).map(num).find(x=>x!=null);return n==null?null:{causa:String(row[a[1]]).trim(),n};});
+  }
+  const au=sheet(wb,'AUDITORIA');
+  if(au){const h=findCell(au,s=>s==='% AUDITORIA');
+    if(h)C.auditoria=listRows(au,h,h[1]-1,r=>({nombre:cleanName(at(au,r,h[1]-1)),aud:num(at(au,r,h[1])),acc:num(at(au,r,h[1]+1))}));}
+  const m=sheet(wb,'MERMA');
+  if(m){const h=findCell(m,s=>s==='MERMA');
+    if(h)C.merma=listRows(m,h,h[1]-1,r=>{const monto=num(at(m,r,h[1]));return monto==null?null:{nombre:cleanName(at(m,r,h[1]-1)),monto,origen:String(at(m,r,h[1]+1)??'SIN ORIGEN').trim().toUpperCase()};});}
+  const inc=sheet(wb,'INCIDENCIAS');
+  if(inc){
+    const hr=inc.findIndex(row=>(row||[]).filter(x=>MESES.includes(norm(x))).length>=2);
+    if(hr>=0){
+      const row=inc[hr],c0=row.findIndex(x=>MESES.includes(norm(x)));
+      let c=c0;while(MESES.includes(norm(row[c])))C.incidencias.meses.push(norm(row[c++]));
+      C.incidencias.filas=listRows(inc,[hr,c0],c0-1,r=>({nombre:cleanName(at(inc,r,c0-1)),valores:C.incidencias.meses.map((_,i)=>num(at(inc,r,c0+i)))}));
+    }
+  }
+  C.mes=mesDe(file)||C.incidencias.meses.at(-1)||C.mesesClientes.at(-1)||'';
+  return C;
+}
+
+// Store records as the dashboard uses them. Sheets with no sales are skipped (a blank template sheet for next month would otherwise
+// overwrite the real month), and a SUCURSAL cell that holds only a generic word ("EXPRESS") takes the store name from the file name
+// ("SEPTIEMBRE EXPRESS CHIMBORAZO.xls"). Runs on new uploads and on files already saved, which is why it works on parsed records.
+const nombreDeArchivo=f=>cleanName(String(f).replace(/\.[^.]+$/,'').replace(/\d+/g,' ').split(/\s+/).filter(w=>!MESES.includes(norm(w))).join(' '));
+const regs=(registros,file)=>registros.filter(s=>s.total>0||(s.dias||[]).length).map(s=>{
+  if(!/\d{4}$/.test(s.mes||''))s={...s,mes:conAnio(s.mes,s.anio)};
+  if(storeKey(s.nombre))return s;
+  const nombre=nombreDeArchivo(file);return{...s,nombre,key:storeKey(nombre),nombreCelda:s.nombre};});
+
+// Files can hold a store's whole history (SEPTIEMBRE 25 … SEPTIEMBRE 26), so a period is "MES AAAA".
+// per() turns it into a month count that sorts and steps across years; periodo() turns it back.
+const per=p=>{const m=String(p||'').match(/^(\D+?)\s+(\d{4})$/);return m&&MESES.includes(m[1])?+m[2]*12+MESES.indexOf(m[1]):-1;};
+const periodo=n=>n<0?'':MESES[n%12]+' '+Math.floor(n/12);
+const anioDe=s=>{const m=String(s??'').match(/(?:^|\D)(\d{4}|\d{2})(?:\D|$)/);return m?(m[1].length===2?2000+ +m[1]:+m[1]):null;};
+// shortcut: with no year in the sheet name or the MES cell, take the latest month already closed (the current month counts as last year's)
+function conAnio(mes,anio){
+  if(!MESES.includes(mes))return mes||'';
+  if(!anio){const h=new Date();anio=h.getFullYear()-(MESES.indexOf(mes)>=h.getMonth()?1:0);}
+  return mes+' '+anio;
+}
+
+function parseSucursal(g,hoja){
+  const p=findCell(g,s=>s==='SUCURSAL:'),raw=norm(nextVal(g,p[0],p[1])),mm=raw.match(/^(\d+)[\s.\-]+(.*)$/);
+  const nombre=cleanName(mm?mm[2]:raw),val=l=>{const h=findCell(g,s=>s===l);return h?h:null;};
+  const below=l=>{const h=val(l);return h?num(at(g,h[0]+1,h[1])):null;};
+  const right=l=>{const h=val(l);return h?nextVal(g,h[0],h[1]):null;};
+  let farmacia=below('FARMACIA')??0,misc=below('MISCELANEOS')??0;const meta=num(right('META:'));
+  // Two layouts of the daily table: "VTA DIARIA … NRO DE FAC" and an older "MISCELANEO FARMACIA VENTA … FACTURAS".
+  const dias=[],dh=findCell(g,s=>s.startsWith('VTA DIARIA'))||findCell(g,s=>s==='VENTA');
+  if(dh){const H=(g[dh[0]]||[]).map(norm),iD=H.indexOf('DIA'),iF=H.indexOf('NRO DE FAC')>=0?H.indexOf('NRO DE FAC'):H.indexOf('FACTURAS'),iU=H.indexOf('UNIDADES DIARIA'),iC=H.indexOf('CLIENTE');
+    for(let r=dh[0]+1;r<g.length;r++){const d=num(at(g,r,iD));if(d==null)break;const v=num(at(g,r,dh[1]));if(v==null)continue;
+      dias.push({dia:d,venta:v,fac:num(at(g,r,iF))??0,unid:num(at(g,r,iU))??0,cli:num(at(g,r,iC))??0});}}
+  const lista=l=>{const h=val(l);if(!h)return[];const out=[];for(let r=h[0]+1;/^\d+[\s.\-]/.test(norm(at(g,r,h[1])));r++)out.push(String(at(g,r,h[1])).replace(/^\s*\d+[\s.\-]*/,'').trim());return out;};
+  const an=val('ANALISIS DE DATOS'),sum=k=>dias.reduce((s,d)=>s+d[k],0);
+  const total=below('CUMPLIMIENTO')??farmacia+misc,fac=sum('fac');
+  // Some files carry farmacia/misceláneos in bolívares while the total is in dollars: keep their split, applied to the dollar total.
+  const enOtraMoneda=total>0&&farmacia+misc>total*1.5;
+  if(enOtraMoneda){const t=farmacia+misc;farmacia=total*farmacia/t;misc=total*misc/t;}
+  // Month and year candidates from the MES cell and the sheet name; parseWorkbook picks between them.
+  const celdaMes=right('MES:');
+  return{nombre,key:storeKey(nombre),codigo:mm?mm[1]:'',mesCelda:mesDe(celdaMes),mesHoja:mesDe(norm(hoja)),anioHoja:anioDe(hoja),
+    anioCelda:typeof celdaMes==='number'&&celdaMes>20000?XLSX.SSF.parse_date_code(celdaMes).y:null,meta,promDia:num(right('PROMEDIO DIARIO:'))??(meta&&dias.length?meta/dias.length:null),
+    farmacia,misc,enOtraMoneda,total,dias,clientes:sum('cli'),facturas:fac,unidades:sum('unid'),ticket:fac?total/fac:null,
+    top:lista('PRODUCTOS MAS VENDIDOS'),sinRot:lista('PRODUCTOS SIN ROTACION EN TIENDA'),analisis:an?String(at(g,an[0]+1,an[1])??'').trim():''};
+}
+
+function parseWorkbook(wb,file){
+  if(wb.SheetNames.some(s=>norm(s).includes('INDICADOR VENTAS')))return parseConsolidado(wb,file);
+  const lista=wb.SheetNames.map(n=>[n,grid(wb.Sheets[n])]).filter(([,g])=>findCell(g,s=>s==='SUCURSAL:')).map(([n,g])=>parseSucursal(g,n));
+  // The MES cell decides the month (sheet names are often stale copies: a "JULIO" sheet holding September). When two sheets of one
+  // file claim the same month, the one whose sheet name says another month takes that name (sheet JULIO with "JUNIO" in MES).
+  const cuenta={};lista.forEach(x=>{const m=x.mesCelda||x.mesHoja;cuenta[m]=(cuenta[m]||0)+1;});
+  lista.forEach(x=>{let m=x.mesCelda||x.mesHoja;if(x.mesHoja&&x.mesHoja!==m&&cuenta[m]>1)m=x.mesHoja;
+    x.mes=m;x.anio=(x.mesHoja===m?x.anioHoja:null)||x.anioCelda;});
+  const registros=regs(lista,file);
+  return registros.length?{kind:'sucursal',file,registros}:{kind:'desconocido',file};
+}
+</script>
+
+<script>
+const $=s=>document.querySelector(s);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const loc=(v,d)=>v.toLocaleString('es-VE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const f$=v=>v==null?'—':'$'+loc(v,2);
+const fN=v=>v==null?'—':loc(Math.round(v),0);
+const fP=(v,d=1)=>v==null||!isFinite(v)?'—':loc(v*100,d)+'%';
+const cap=s=>String(s||'').toLowerCase().replace(/(^|[\s(])\S/g,m=>m.toUpperCase());
+const sum=(a,k)=>a.reduce((s,x)=>s+(x[k]||0),0);
+const prevMes=m=>periodo(per(m)-1);
+const signo=(v,txt)=>`<span class="${v>=0?'up':'down'}">${v>=0?'+':''}${txt}</span>`;
+
+const state={cons:null,stores:new Map(),files:[],filtro:'todas',suc:''};
+let nextId=1,db=null,canWrite=false;
+// Loaded files live in Supabase table "archivos" (one row per file: name, parsed result r, upload order).
+// Anyone can read; only the admin account can write (enforced by the table's policies, not by this page).
+const setDbNote=t=>{$('#dbNote').hidden=!t;$('#dbNote').textContent=t||'';};
+async function cargar(){
+  const {data,error}=await db.from('archivos').select('id,name,r,orden').order('orden');
+  if(error){setDbNote(`No se pudieron cargar los archivos guardados (${error.message}). Recarga la página más tarde.`);return;}
+  if($('#dbNote').textContent.startsWith('No se pudieron cargar'))setDbNote('');
+  state.files=data.map(d=>({...d,id:String(d.id)}));derive();render();
+}
+function sesion(s){
+  canWrite=!!s;$('#login').hidden=canWrite;$('#salir').hidden=!canWrite;
+  $('#adminTxt').textContent=canWrite?`Entraste como ${s.user.email}. Puedes subir y eliminar archivos.`:'Solo el administrador puede subir o eliminar archivos. Escribe tu correo y te llegará un enlace para entrar.';
+  render();
+}
+async function boot(){
+  if(!window.supabase||SUPABASE_URL.startsWith('PEGA')){setDbNote('Falta configurar la base de datos: los archivos no se guardarán al recargar.');$('#admin').hidden=true;canWrite=true;render();return;}
+  db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  db.auth.onAuthStateChange((_e,s)=>sesion(s));
+  sesion((await db.auth.getSession()).data.session);
+  await cargar();
+  // Other viewers' uploads and deletes show up without reloading.
+  db.channel('archivos').on('postgres_changes',{event:'*',schema:'public',table:'archivos'},cargar).subscribe();
+}
+const writeError=e=>/row-level security|permission/i.test(e?.message||'')?'No se pudo guardar: tu cuenta no tiene permiso para modificar el tablero.'
+  :/too large|payload/i.test(e?.message||'')?'No se pudo guardar: el archivo es demasiado grande.'
+  :'No se pudo guardar el cambio. Revisa tu conexión e intenta de nuevo.';
+async function borrar(ids){
+  if(!db){state.files=state.files.filter(f=>!ids.includes(f.id));derive();render();return;}
+  const {error}=await db.from('archivos').delete().in('id',ids);
+  if(error)setDbNote(writeError(error));else await cargar();
+}
+$('#login').addEventListener('submit',async e=>{e.preventDefault();
+  const {error}=await db.auth.signInWithOtp({email:$('#correo').value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
+  $('#adminTxt').textContent=error?'No se pudo enviar el enlace. Revisa que el correo sea el del administrador.':'Listo. Revisa tu correo y abre el enlace desde este mismo navegador.';});
+$('#salir').addEventListener('click',()=>db.auth.signOut());
+// Data is rebuilt from the loaded files in order, so removing one file drops only what it contributed; a later file for the same store and month wins.
+function derive(){
+  state.cons=null;state.consOwner=null;state.stores=new Map();state.owner=new Map();
+  for(const f of state.files){
+    if(f.r.kind==='consolidado'){state.cons=f.r;state.consOwner=f.id;}
+    else if(f.r.kind==='sucursal')regs(f.r.registros,f.name).forEach(s=>{const k=s.key+'|'+s.mes;
+      // Files saved before the currency check carry bolívares in farmacia/misceláneos; fix them on read the same way the parser does.
+      if(s.total>0&&s.farmacia+s.misc>s.total*1.5){const t=s.farmacia+s.misc;s={...s,farmacia:s.total*s.farmacia/t,misc:s.total*s.misc/t,enOtraMoneda:true};}
+      state.stores.set(k,s);state.owner.set(k,f.id);});
+  }
+}
+function renderArchivos(){
+  const n=state.files.length;
+  $('#nArch').textContent=n;$('#archVacio').hidden=!!n;$('#archTbl').hidden=!n;$('#reset').hidden=!n||!canWrite;$('#drop').hidden=!canWrite;
+  const rs=$('#reset');delete rs.dataset.armed;rs.textContent='Eliminar todos';
+  $('#archivos').innerHTML='<thead><tr><th>Archivo</th><th>Tipo</th><th>Contenido</th><th><span class="sr">Acción</span></th></tr></thead><tbody>'+state.files.map(f=>{
+    const r=f.r,ok=r.kind==='consolidado'||r.kind==='sucursal';
+    const det=r.kind==='consolidado'?`${esc(cap(r.mes))} · solo se toman auditoría, merma e incidencias`+(state.consOwner!==f.id?' <b class="down">(reemplazado por otro consolidado)</b>':'')
+      :r.kind==='sucursal'?regs(r.registros,f.name).map(s=>`${esc(cap(s.nombre))} · ${esc(cap(s.mes))}`+
+        (s.nombreCelda?` <b class="down">(la celda SUCURSAL solo dice "${esc(cap(s.nombreCelda))}": se tomó el nombre del archivo)</b>`:'')+
+        (s.enOtraMoneda?' <b class="down">(farmacia y misceláneos venían en otra moneda: se repartieron sobre la venta en dólares)</b>':'')+(state.owner.get(s.key+'|'+s.mes)!==f.id?` <b class="down">(no se usa: este mes ya viene en ${esc(state.files.find(x=>x.id===state.owner.get(s.key+'|'+s.mes))?.name||'otro archivo')})</b>`:'')).join('<br>')
+      :esc(r.msg||'No tiene el formato de Estadísticas de ventas');
+    return `<tr><td>${esc(f.name)}</td><td><span class="pill ${ok?'ok':'no'}">${r.kind==='consolidado'?'Consolidado':ok?'Sucursal':'No reconocido'}</span></td><td>${det}</td>`+
+      `<td>${canWrite?`<button class="btn sm danger" data-del="${esc(f.id)}" aria-label="Eliminar ${esc(f.name)}">Eliminar</button>`:''}</td></tr>`;}).join('')+'</tbody>';
+}
+let tab='resumen';
+function setTab(t){
+  if(!$('#v-'+t))t='resumen';
+  tab=t;
+  document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!=='v-'+t);
+  document.querySelectorAll('.menu [data-tab]').forEach(b=>b.dataset.tab===t?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+  $('#vTitle').textContent=$(`.menu [data-tab="${t}"]`).dataset.title;
+  $('#segF').hidden=t==='archivos'||t==='sucursal';
+  render();
+}
+
+function mesActual(){
+  return [...state.stores.values()].map(s=>s.mes).sort((a,b)=>per(b)-per(a))[0]||state.cons?.mes||'';
+}
+
+// Sales, customers and departments come only from each store's Estadística de ventas (current and previous month).
+function filas(){
+  const M=new Map(),C=state.cons,mes=mesActual(),ant=prevMes(mes);
+  const get=n=>{const k=storeKey(n);if(!M.has(k))M.set(k,{key:k,nombre:cleanName(n),pod:isPoderoso(n),src:new Set()});return M.get(k);};
+  SUCURSALES.forEach(n=>{get(n).roster=true;});
+  for(const s of state.stores.values()){
+    if(s.mes===mes){const f=get(s.nombre);Object.assign(f,{meta:s.meta,real:s.total,cliAct:s.clientes,fac:s.facturas,farm:s.farmacia,misc:s.misc});f.src.add('estadística de ventas');}
+    else if(s.mes===ant)Object.assign(get(s.nombre),{realAnt:s.total,metaAnt:s.meta,cliAnt:s.clientes,facAnt:s.facturas});
+  }
+  if(C){
+    C.auditoria.forEach(a=>{const f=get(a.nombre);f.aud=a.aud;f.acc=a.acc;f.src.add('auditoría');});
+    C.merma.forEach(m=>{const f=get(m.nombre);f.merma=m.monto;f.origen=m.origen;f.src.add('merma');});
+    C.incidencias.filas.forEach(i=>{const f=get(i.nombre);f.incSerie=i.valores;f.incAct=i.valores.at(-1);f.incAnt=i.valores.at(-2);f.src.add('incidencias');});
+  }
+  return [...M.values()];
+}
+
+const charts={};
+function chart(id,cfg){charts[id]?.destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+function sizeBox(id,n){document.getElementById(id).style.height=Math.max(160,n*26+50)+'px';}
+// Writes "$amount · %" inside each segment of a stacked horizontal bar (% of that bar's total); only the % if the segment is narrow.
+const etiquetasPct={id:'pct',afterDatasetsDraw(c){
+  const ctx=c.ctx;ctx.save();ctx.font=`600 11px ${css('--f-body')}`;ctx.textAlign='center';ctx.textBaseline='middle';
+  c.data.datasets.forEach((ds,di)=>c.getDatasetMeta(di).data.forEach((bar,i)=>{
+    const v=ds.data[i],tot=c.data.datasets.reduce((s,d)=>s+(d.data[i]||0),0),w=Math.abs(bar.x-bar.base);
+    if(!v||!tot)return;
+    let t=`$${loc(v,0)} · ${fP(v/tot,0)}`;if(ctx.measureText(t).width+10>w)t=fP(v/tot,0);if(ctx.measureText(t).width+6>w)return;
+    ctx.fillStyle=di===0?css('--accent-ink'):css('--ink');ctx.fillText(t,(bar.x+bar.base)/2,bar.y);}));
+  ctx.restore();}};
+function hbar(id,labels,datasets,{fmt=v=>v,stacked=false,legend=datasets.length>1,tip,plugins=[]}={}){
+  chart(id,{type:'bar',plugins,data:{labels,datasets},options:{indexAxis:'y',maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:legend,position:'top',align:'start',labels:{boxWidth:12}},tooltip:{callbacks:{label:tip||(c=>`${c.dataset.label?c.dataset.label+': ':''}${fmt(c.parsed.x)}`)}}},
+    scales:{x:{stacked,ticks:{callback:fmt},grid:{color:css('--line')}},y:{stacked,grid:{display:false},ticks:{autoSkip:false,color:css('--ink')}}}}});
+}
+
+function render(){
+  renderArchivos();
+  if(!window.Chart){$('#kpis').innerHTML='<div class="note">No se pudo cargar la librería de gráficos. Revisa la conexión a internet y recarga la página.</div>';return;}
+  Chart.defaults.color=css('--muted');Chart.defaults.borderColor=css('--line');Chart.defaults.font.family=css('--f-body');
+  const C=state.cons,mes=mesActual(),ant=prevMes(mes);
+  $('#vSub').textContent=mes?`${cap(mes)} · comparado con ${cap(ant)}`:'Sin datos cargados';
+  const vacio=!state.stores.size&&!C;
+  $('#vacio').hidden=!vacio||tab==='archivos';
+  ['auditoria','merma','incidencias'].forEach(t=>$(`.menu [data-tab="${t}"]`).hidden=!C);$('#menuCons').hidden=!C;
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===state.filtro));
+  document.querySelectorAll('#kpis,.sec,#noAnt,#sinPareja').forEach(e=>e.hidden=vacio);
+  $('#viewEmpty').hidden=true;
+  if(vacio)return;
+
+  const todas=filas();
+  const huerf=todas.filter(x=>!x.roster);
+  $('#sinPareja').hidden=!huerf.length;
+  $('#sinPareja').innerHTML=`Estos nombres no están en la lista de sucursales, así que aparecen en filas aparte: `+
+    huerf.map(x=>`<b>${esc(cap(x.nombre))}</b> (${[...x.src].join(', ')||'mes anterior'})`).join('; ')+'. Si alguno es una sucursal con otro nombre, hay que agregarlo a la lista.';
+  const conMes=todas.filter(x=>x.real!=null),sinAnt=conMes.filter(x=>x.realAnt==null);
+  $('#noAnt').hidden=!sinAnt.length;
+  $('#noAnt').innerHTML=`Para comparar con ${esc(cap(ant))} sube también la estadística de ${esc(cap(ant))} de: ${sinAnt.map(x=>esc(cap(x.nombre))).join(', ')}.`;
+  const F=todas.filter(x=>state.filtro==='todas'||(state.filtro==='poderoso')===x.pod);
+
+  // Resumen can narrow to one store (any store with a loaded file under the current filter); other views keep the whole filter.
+  const enFiltro=n=>state.filtro==='todas'||(state.filtro==='poderoso')===isPoderoso(n);
+  const opts=[...new Map([...state.stores.values()].filter(s=>enFiltro(s.nombre)).map(s=>[s.key,s.nombre])).entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+  if(state.suc&&!opts.some(([k])=>k===state.suc))state.suc='';
+  $('#selRes').innerHTML='<option value="">Todas las sucursales</option>'+opts.map(([k,n])=>`<option value="${esc(k)}">${esc(cap(n))}</option>`).join('');
+  $('#selRes').value=state.suc;
+  const R=state.suc?todas.filter(x=>x.key===state.suc):F;
+  ['cardRes','cardMetas','cardTabla'].forEach(id=>$('#'+id).hidden=!!state.suc);
+  renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderVentas(F,mes,ant);renderNoConf(F,mes,ant);renderFarm(F);
+  ['s-aud','s-merma','s-inc'].forEach(id=>$('#'+id).hidden=!C);
+  if(C){renderAud(F);renderMerma(F);renderInc(F);}
+  renderDetalle();
+  const v=$('#v-'+tab);
+  $('#viewEmpty').hidden=tab==='archivos'||[...v.querySelectorAll('.sec')].some(s=>!s.hidden);
+}
+
+const IC={
+  money:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
+  ticket:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>',
+  pct:'<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M19 5L5 19"/>',
+};
+const kpi=(t,ic,val,sub,hero)=>`<div class="kpi${hero?' hero':''}"><div class="kpi-h"><span>${t}</span>${ic?`<i><svg class="ic" viewBox="0 0 24 24">${IC[ic]}</svg></i>`:''}</div><b>${val}</b><small>${sub}</small></div>`;
+// Change vs the previous month as a pill; inv=true when going down is good.
+const delta=(a,b,ant,inv)=>{if(a==null||!b)return ant?`Sin datos de ${esc(cap(ant))}`:'';const v=(a-b)/b;
+  return `<span class="delta ${(inv?-v:v)>=0?'up':'down'}">${v>=0?'↑':'↓'} ${fP(Math.abs(v))}</span> vs ${esc(cap(ant))}`;};
+
+function renderKpis(F,mes,ant){
+  const cm=F.filter(x=>x.meta>0),meta=sum(cm,'meta'),real=sum(cm,'real'),ok=cm.filter(x=>x.real>=x.meta).length;
+  const vp=F.filter(x=>x.real!=null&&x.realAnt),cp=F.filter(x=>x.cliAct!=null&&x.cliAnt),tk=F.filter(x=>x.fac),tp=tk.filter(x=>x.facAnt);
+  const ca=cm.filter(x=>x.metaAnt>0&&x.realAnt!=null),okAnt=ca.filter(x=>x.realAnt>=x.metaAnt).length;
+  $('#kpis').innerHTML=[
+    kpi('Ventas del mes','money',f$(real),(cm.length?`${fP(real/meta)} de la meta · `:'')+delta(sum(vp,'real'),sum(vp,'realAnt'),ant),true),
+    // Chain-wide: total sales ÷ total goal of every store with a goal; compared in percentage points with the previous month's stores.
+    ...(state.suc?[]:[(()=>{const pa=F.filter(x=>x.metaAnt>0&&x.realAnt!=null),p=real/meta,q=sum(pa,'realAnt')/sum(pa,'metaAnt'),d=(p-q)*100;
+      return kpi('Cumplimiento general','pct',cm.length?fP(p):'—',cm.length?`Ventas ${f$(real)} de una meta total de ${f$(meta)}<br>`+(pa.length?`<span class="delta ${d>=0?'up':'down'}">${d>=0?'↑':'↓'} ${loc(Math.abs(d),1)} pts</span> vs ${esc(cap(ant))} (${fP(q)})`:`Sin datos de ${esc(cap(ant))}`)+
+        ` · ${cm.length} sucursales`:'');})()]),
+    state.suc?kpi('Cumplimiento','target',cm.length?fP(real/meta):'—',cm.length?(ok?'<span class="delta up">Conforme</span>':'<span class="delta down">No conforme</span>')+(ca.length?` · ${esc(cap(ant))}: ${fP(sum(ca,'realAnt')/sum(ca,'metaAnt'))}`:''):`Sin archivo de ${esc(cap(mes))}`):
+    kpi('Sucursales en meta','target',cm.length?`${ok} de ${cm.length}`:'—',cm.length?`${fP(ok/cm.length,0)} conformes`+(ca.length?` · ${esc(cap(ant))}: ${fP(okAnt/ca.length,0)}`:''):''),
+    kpi('Clientes recibidos','users',fN(sum(F.filter(x=>x.cliAct!=null),'cliAct')),delta(sum(cp,'cliAct'),sum(cp,'cliAnt'),ant)),
+    kpi('Ticket promedio','ticket',tk.length?f$(sum(tk,'real')/sum(tk,'fac')):'—',tp.length?delta(sum(tp,'real')/sum(tp,'fac'),sum(tp,'realAnt')/sum(tp,'facAnt'),ant):`Sin datos de ${esc(cap(ant))}`),
+  ].join('');
+}
+
+// Month-by-month totals from every loaded file: one store when chosen, else all stores in the filter.
+function renderMeses(R,mes,ant,enFiltro){
+  const by=new Map();
+  for(const s of state.stores.values()){
+    if(state.suc?s.key!==state.suc:!enFiltro(s.nombre))continue;
+    const m=by.get(s.mes)||{mes:s.mes,meta:0,real:0,cli:0,fac:0,farm:0,misc:0,n:0,suc:new Map()};
+    m.meta+=s.meta||0;m.real+=s.total||0;m.cli+=s.clientes||0;m.fac+=s.facturas||0;m.farm+=s.farmacia||0;m.misc+=s.misc||0;m.n++;m.suc.set(s.key,s);by.set(s.mes,m);
+  }
+  const S=[...by.values()].sort((a,b)=>per(a.mes)-per(b.mes));
+  $('#mesSub').textContent=state.suc?'Todos los meses cargados de esta sucursal':'Suma de las sucursales cargadas en cada mes';
+  chart('chMes',{data:{labels:S.map(m=>cap(m.mes)),datasets:[
+      {type:'bar',label:'Venta',data:S.map(m=>m.real),backgroundColor:css('--accent'),borderRadius:6,maxBarThickness:36,yAxisID:'y'},
+      {type:'bar',label:'Meta',data:S.map(m=>m.meta),backgroundColor:css('--ref'),borderRadius:6,maxBarThickness:36,yAxisID:'y'},
+      {type:'line',label:'Clientes',data:S.map(m=>m.cli),borderColor:css('--ink'),backgroundColor:css('--ink'),pointRadius:4,tension:.3,yAxisID:'y1'}]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',align:'end',labels:{boxWidth:8,usePointStyle:true}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.dataset.yAxisID==='y1'?fN(c.parsed.y):f$(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>'$'+loc(v/1000,0)+'k'},grid:{color:css('--line')},border:{display:false}},
+        y1:{position:'right',beginAtZero:true,grid:{display:false},ticks:{callback:v=>fN(v)},border:{display:false}}}}});
+  // Change vs the previous loaded month counts only stores present in both months, so uploading more stores doesn't read as growth.
+  const vr=(m,p,k)=>{if(!p)return'—';const c=[...m.suc.keys()].filter(x=>p.suc.has(x));
+    const a=c.reduce((s,x)=>s+(m.suc.get(x)[k]||0),0),b=c.reduce((s,x)=>s+(p.suc.get(x)[k]||0),0);
+    return b?signo((a-b)/b,fP((a-b)/b))+(!state.suc&&c.length<m.n?` <small class="sub">(${c.length} suc.)</small>`:''):'—';};
+  $('#tablaMes').innerHTML=`<thead><tr><th>Mes</th>${state.suc?'':'<th>Sucursales</th>'}<th>Meta</th><th>Venta</th><th>Cumpl.</th><th>Var. venta</th><th>Clientes</th><th>Var. clientes</th><th>Ticket</th><th>Farmacia</th><th>Misceláneos</th></tr></thead><tbody>`+
+    S.map((m,i)=>{const p=S[i-1];return `<tr><td>${esc(cap(m.mes))}</td>${state.suc?'':`<td>${m.n}</td>`}<td>${f$(m.meta)}</td><td>${f$(m.real)}</td>`+
+      `<td>${m.meta?`<span class="pill ${m.real>=m.meta?'ok':'no'}">${fP(m.real/m.meta)}</span>`:'—'}</td><td>${vr(m,p,'total')}</td>`+
+      `<td>${fN(m.cli)}</td><td>${vr(m,p,'clientes')}</td><td>${m.fac?f$(m.real/m.fac):'—'}</td><td>${f$(m.farm)}</td><td>${f$(m.misc)}</td></tr>`;}).join('')+'</tbody>';
+  const s=state.suc&&state.stores.get(state.suc+'|'+mes);
+  $('#txSuc').hidden=!s?.analisis;$('#txSucQ').textContent=s?.analisis||'';
+  if(!state.suc)return;
+  const x=R[0]||{},nom=esc(cap(x.nombre||'')),best=[...S].sort((a,b)=>(b.meta?b.real/b.meta:0)-(a.meta?a.real/a.meta:0))[0];
+  $('#txTabla').innerHTML=(x.real==null?`<b>${nom}</b> no tiene archivo de ${esc(cap(mes))}.`
+    :`<b>${nom}</b> vendió <b>${f$(x.real)}</b> en ${esc(cap(mes))}`+(x.meta?`, el <b>${fP(x.real/x.meta)}</b> de su meta de ${f$(x.meta)} (${x.real>=x.meta?'conforme':'no conforme'}).`:'.')+
+      (x.realAnt?` Frente a ${esc(cap(ant))} la venta ${x.real>=x.realAnt?'subió':'bajó'} <b>${f$(Math.abs(x.real-x.realAnt))}</b> (${fP((x.real-x.realAnt)/x.realAnt)})`+
+        (x.cliAnt?` y llegaron ${fN(Math.abs(x.cliAct-x.cliAnt))} clientes ${x.cliAct>=x.cliAnt?'más':'menos'}.`:'.'):` No hay archivo de ${esc(cap(ant))} para comparar.`))+
+    (S.length>1&&best?.meta?` De los ${S.length} meses cargados, el mejor cumplimiento fue ${esc(cap(best.mes))} (${fP(best.real/best.meta)}).`:'');
+}
+
+function renderResumen(F){
+  const cm=F.filter(x=>x.meta>0).sort((a,b)=>b.real/b.meta-a.real/a.meta);
+  chart('chRes',{type:'bar',data:{labels:cm.map(x=>cap(x.nombre)),datasets:[
+      {label:'Venta',data:cm.map(x=>x.real),backgroundColor:css('--accent'),borderRadius:6,maxBarThickness:22},
+      {label:'Meta',data:cm.map(x=>x.meta),backgroundColor:css('--ref'),borderRadius:6,maxBarThickness:22}]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',align:'end',labels:{boxWidth:8,usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${f$(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:60,font:{size:10}}},y:{ticks:{callback:v=>'$'+loc(v/1000,0)+'k'},grid:{color:css('--line')},border:{display:false}}}}});
+  const fa=sum(F,'farm'),mi=sum(F,'misc'),t=fa+mi;
+  chart('chDona',{type:'doughnut',data:{labels:['Farmacia','Misceláneos'],datasets:[{data:[fa,mi],backgroundColor:[css('--accent'),css('--ref')],borderWidth:0}]},
+    options:{maintainAspectRatio:false,animation:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${f$(c.parsed)}`}}}}});
+  $('#donaLeg').innerHTML=t?[['Farmacia',fa,'--accent'],['Misceláneos',mi,'--ref']].map(([n,v,c])=>`<li><span class="dot" style="background:var(${c})"></span>${n}<b>${f$(v)} · ${fP(v/t,0)}</b></li>`).join(''):'<li>Sin datos</li>';
+  $('#metas').innerHTML=cm.map(x=>{const p=x.real/x.meta;return `<li><div class="g-row"><strong>${esc(cap(x.nombre))}${x.pod?'<span class="tag">POD</span>':''}</strong><span class="${p>=1?'up':''}">${fP(p)}</span></div>`+
+    `<div class="track" role="img" aria-label="${fP(p)} de la meta"><i style="width:${Math.min(100,p*100)}%"></i></div></li>`;}).join('')||'<li>Sin metas cargadas</li>';
+}
+
+function renderTabla(F,mes,ant){
+  const hasFarm=F.some(x=>x.farm!=null),C=state.cons;
+  const rows=[...F].sort((a,b)=>(b.meta?b.real/b.meta:-1)-(a.meta?a.real/a.meta:-1));
+  const pc=x=>x.meta?x.real/x.meta:null;
+  const barra=v=>v==null?'—':`<span class="bar">${fP(v,0)}<i><u style="width:${Math.min(100,v*100)}%"></u></i></span>`;
+  const vr=(a,b)=>a!=null&&b?signo((a-b)/b,fP((a-b)/b)):'—';
+  let h=`<thead><tr class="grp"><th></th><th colspan="6">Ventas</th><th colspan="4">Clientes</th>${hasFarm?'<th colspan="2">Departamentos</th>':''}${C?'<th colspan="2">Auditoría</th><th colspan="2">Merma</th><th colspan="2">Incidencias</th>':''}</tr>
+  <tr><th>Sucursal</th><th>Meta</th><th>Venta</th><th>Cumpl.</th><th>Estado</th><th>Venta ${esc(cap(ant))}</th><th>Var.</th><th>${esc(cap(ant))}</th><th>${esc(cap(mes))}</th><th>Var.</th><th>Ticket</th>
+  ${hasFarm?'<th>Farmacia</th><th>Misceláneos</th>':''}${C?`<th>% Audit.</th><th>% Acción C.</th><th>Monto</th><th>Origen</th><th>${esc(cap(ant))}</th><th>${esc(cap(mes))}</th>`:''}</tr></thead><tbody>`;
+  for(const x of rows){
+    const p=pc(x);
+    h+=`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</td><td>${f$(x.meta)}</td><td>${f$(x.real)}</td><td>${fP(p)}</td>
+    <td>${p==null?'—':p>=1?'<span class="pill ok">Conforme</span>':'<span class="pill no">No conforme</span>'}</td>
+    <td>${f$(x.realAnt)}</td><td>${vr(x.real,x.realAnt)}</td><td>${fN(x.cliAnt)}</td><td>${fN(x.cliAct)}</td><td>${vr(x.cliAct,x.cliAnt)}</td><td>${x.fac?f$(x.real/x.fac):'—'}</td>
+    ${hasFarm?`<td>${f$(x.farm)}</td><td>${f$(x.misc)}</td>`:''}
+    ${C?`<td>${barra(x.aud)}</td><td>${barra(x.acc)}</td><td>${f$(x.merma)}</td><td>${esc(cap(x.origen))||'—'}</td><td>${fN(x.incAnt)}</td><td>${fN(x.incAct)}</td>`:''}</tr>`;
+  }
+  $('#tabla').innerHTML=h+'</tbody>';
+  const cm=F.filter(x=>x.meta>0),ok=cm.filter(x=>x.real>=x.meta).length;
+  const cp=F.filter(x=>x.cliAct!=null&&x.cliAnt!=null),d=sum(cp,'cliAct')-sum(cp,'cliAnt');
+  const vp=F.filter(x=>x.real!=null&&x.realAnt),vd=sum(vp,'real')-sum(vp,'realAnt');
+  $('#txTabla').innerHTML=cm.length?`De acuerdo a las metas establecidas en las ${cm.length} sucursales, el <b>${fP(ok/cm.length,0)}</b> cumplió la meta de ventas y el <b>${fP(1-ok/cm.length,0)}</b> no la cumplió.`+
+    (vp.length?` En las ${vp.length} sucursales con ambos meses, la venta ${vd>=0?'subió':'bajó'} <b>${f$(Math.abs(vd))}</b> (${fP(vd/sum(vp,'realAnt'))}) frente a ${esc(cap(ant))}.`:'')+
+    (cp.length?` Durante ${esc(cap(mes))} se recibieron <b>${fN(sum(cp,'cliAct'))}</b> clientes en ${cp.length} sucursales comparables; frente a ${esc(cap(ant))} ${d<0?`se dejaron de recibir <b>${fN(-d)}</b>`:`llegaron <b>${fN(d)}</b> clientes más`}.`:''):'Carga archivos para ver el resumen.';
+}
+
+function renderVentas(F,mes,ant){
+  const cm=F.filter(x=>x.meta>0).map(x=>({...x,p:x.real/x.meta})).sort((a,b)=>b.p-a.p);
+  $('#s-ventas').hidden=!cm.length;if(!cm.length)return;
+  sizeBox('boxVentas',cm.length);
+  hbar('chVentas',cm.map(x=>cap(x.nombre)),[{label:'% cumplimiento',data:cm.map(x=>x.p),backgroundColor:cm.map(x=>x.p>=1?css('--good'):css('--bad')),borderRadius:3}],
+    {fmt:v=>fP(v,0),tip:c=>{const x=cm[c.dataIndex];return[`Cumplimiento: ${fP(x.p)}`,`Venta: ${f$(x.real)}`,`Meta: ${f$(x.meta)}`];}});
+  const ok=cm.filter(x=>x.p>=1),top=cm[0],bot=cm.at(-1);
+  $('#txVentas').innerHTML=`<b>${ok.length} de ${cm.length}</b> sucursales fueron conformes. Venta total ${f$(sum(cm,'real'))} contra una meta de ${f$(sum(cm,'meta'))} (${fP(sum(cm,'real')/sum(cm,'meta'))}). `+
+    `Mejor cumplimiento: <b>${esc(cap(top.nombre))}</b> (${fP(top.p)}). Más lejos de la meta: <b>${esc(cap(bot.nombre))}</b> (${fP(bot.p)}, faltaron ${f$(bot.meta-bot.real)}).`;
+
+  const cl=F.filter(x=>x.cliAct!=null&&x.cliAnt).map(x=>({...x,v:(x.cliAct-x.cliAnt)/x.cliAnt})).sort((a,b)=>a.v-b.v);
+  $('#cliBox').hidden=!cl.length;if(!cl.length)return;
+  sizeBox('boxCli',cl.length);
+  hbar('chCli',cl.map(x=>cap(x.nombre)),[{data:cl.map(x=>x.v),backgroundColor:cl.map(x=>x.v<0?css('--bad'):css('--good')),borderRadius:3}],
+    {fmt:v=>fP(v,0),tip:c=>{const x=cl[c.dataIndex];return[`Variación: ${fP(x.v)}`,`${cap(ant)}: ${fN(x.cliAnt)}`,`${cap(mes)}: ${fN(x.cliAct)}`];}});
+  const baj=cl.filter(x=>x.v<0),a=sum(cl,'cliAct'),b=sum(cl,'cliAnt');
+  $('#txCli').innerHTML=`En ${esc(cap(mes))} llegaron <b>${fN(a)}</b> clientes a estas ${cl.length} sucursales, ${signo(a-b,fN(a-b))} frente a ${esc(cap(ant))} (${fP((a-b)/b)}). `+
+    `<b>${baj.length}</b> sucursales recibieron menos clientes.`+(baj.length?` La mayor caída fue en <b>${esc(cap(cl[0].nombre))}</b> (${fP(cl[0].v)}).`:'');
+}
+
+// Stores under 100% of their goal, in the same order as the ventas chart and the general table (highest % first), one wide card each.
+function renderNoConf(F,mes,ant){
+  const cm=F.filter(x=>x.meta>0),nc=cm.filter(x=>x.real<x.meta).sort((a,b)=>b.real/b.meta-a.real/a.meta);
+  $('#nNc').hidden=!nc.length;$('#nNc').textContent=nc.length;
+  $('#s-noconf').hidden=!cm.length;if(!cm.length)return;
+  const chip=(t,v)=>`<div class="chip"><span>${t}</span><b>${v}</b></div>`;
+  $('#ncChips').innerHTML=chip('No conformes',`${nc.length} de ${cm.length}`)+chip('Les faltó en total',f$(nc.reduce((s,x)=>s+x.meta-x.real,0)))+
+    (nc.length?chip('Cumplimiento promedio',fP(sum(nc,'real')/sum(nc,'meta'))):'');
+  const vs=(a,b)=>a!=null&&b?signo((a-b)/b,fP((a-b)/b))+` <small>vs ${esc(cap(ant))}</small>`:`<small>sin ${esc(cap(ant))}</small>`;
+  $('#ncGrid').innerHTML=nc.length?nc.map((x,i)=>{
+    const s=state.stores.get(x.key+'|'+mes)||{},d=s.dias||[],p=x.real/x.meta,pd=s.promDia,t=(x.farm||0)+(x.misc||0);
+    const enMeta=pd?d.filter(v=>v.venta>=pd).length:null;
+    return `<article class="card"><div class="card-h"><div class="nc-t"><span>#${i+1}</span><h2>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</h2></div><span class="nc-big">${fP(p)}</span></div>`+
+      `<div class="track" role="img" aria-label="${fP(p)} de la meta"><i style="width:${Math.min(100,p*100)}%"></i></div><dl class="nc-dl">`+
+      `<div><dt>Meta</dt><dd>${f$(x.meta)}</dd></div><div><dt>Venta</dt><dd>${f$(x.real)}</dd></div>`+
+      `<div><dt>Le faltó</dt><dd class="down">${f$(x.meta-x.real)} <small>${fP(1-p)} de la meta</small></dd></div>`+
+      `<div><dt>Venta diaria promedio</dt><dd>${d.length?f$(x.real/d.length):'—'}${pd?` <small>de ${f$(pd)} requeridos</small>`:''}</dd></div>`+
+      `<div><dt>Días en meta diaria</dt><dd>${enMeta==null?'—':`${enMeta} de ${d.length}`}</dd></div>`+
+      `<div><dt>Venta</dt><dd>${vs(x.real,x.realAnt)}</dd></div>`+
+      `<div><dt>Clientes</dt><dd>${fN(x.cliAct)} ${vs(x.cliAct,x.cliAnt)}</dd></div>`+
+      `<div><dt>Ticket promedio</dt><dd>${x.fac?f$(x.real/x.fac):'—'} ${x.fac?vs(x.real/x.fac,x.facAnt&&x.realAnt/x.facAnt):''}</dd></div>`+
+      `<div><dt>Farmacia / Misceláneos</dt><dd>${t?`${fP(x.farm/t,0)} / ${fP(x.misc/t,0)}`:'—'}</dd></div></dl>`+
+      (s.analisis?`<details class="nc-com"><summary>Comentario de la sucursal</summary><p class="quote">${esc(s.analisis)}</p></details>`:'')+
+      `<button class="link" style="align-self:flex-start" data-ver="${esc(x.key+'|'+mes)}">Ver detalle diario →</button></article>`;
+  }).join(''):'<p class="note">Todas las sucursales con meta cumplieron este mes.</p>';
+}
+
+function renderFarm(F){
+  const s=F.filter(x=>x.farm!=null).sort((a,b)=>(b.farm+b.misc)-(a.farm+a.misc));
+  $('#s-farm').hidden=!s.length;if(!s.length)return;
+  sizeBox('boxFarm',s.length);
+  hbar('chFarm',s.map(x=>cap(x.nombre)),[{label:'Farmacia',data:s.map(x=>x.farm),backgroundColor:css('--accent')},{label:'Misceláneos',data:s.map(x=>x.misc),backgroundColor:css('--ref')}],{fmt:v=>'$'+loc(v,0),stacked:true,plugins:[etiquetasPct],
+    tip:c=>{const x=s[c.dataIndex];return `${c.dataset.label}: ${f$(c.parsed.x)} · ${fP(c.parsed.x/(x.farm+x.misc))}`;}});
+  const fa=sum(s,'farm'),mi=sum(s,'misc');
+  $('#txFarm').innerHTML=`Farmacia aporta <b>${fP(fa/(fa+mi))}</b> de la venta (${f$(fa)}) y misceláneos <b>${fP(mi/(fa+mi))}</b> (${f$(mi)}) en ${s.length} sucursal${s.length>1?'es':''} con estadística cargada.`;
+}
+
+function renderAud(F){
+  const a=F.filter(x=>x.aud!=null).sort((x,y)=>y.aud-x.aud);
+  $('#s-aud').hidden=!a.length;if(!a.length)return;
+  sizeBox('boxAud',a.length*1.5);
+  hbar('chAud',a.map(x=>cap(x.nombre)),[{label:'% Auditoría',data:a.map(x=>x.aud),backgroundColor:css('--accent'),borderRadius:3},{label:'% Acción C.',data:a.map(x=>x.acc),backgroundColor:css('--ref'),borderRadius:3}],{fmt:v=>fP(v,0)});
+  const sinAcc=a.filter(x=>!x.acc);
+  $('#txAud').innerHTML=`Promedio de auditoría: <b>${fP(sum(a,'aud')/a.length)}</b> en ${a.length} sucursales. Más alta: <b>${esc(cap(a[0].nombre))}</b> (${fP(a[0].aud,0)}). Más baja: <b>${esc(cap(a.at(-1).nombre))}</b> (${fP(a.at(-1).aud,0)}).`+
+    (sinAcc.length?` <b>${sinAcc.length}</b> sucursales tienen la acción correctiva en 0% o sin registrar: ${sinAcc.map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
+}
+
+function renderMerma(F){
+  const m=F.filter(x=>x.merma!=null).sort((a,b)=>b.merma-a.merma);
+  $('#s-merma').hidden=!m.length;if(!m.length)return;
+  const col={FALTANTE:css('--bad'),VENCIDO:css('--warn'),'DAÑADO':css('--pod')},c=o=>col[o]||css('--ref');
+  const tot=sum(m,'merma'),orig={};
+  m.forEach(x=>{const o=orig[x.origen]??={monto:0,n:0};o.monto+=x.merma;o.n++;});
+  $('#mermaChips').innerHTML=`<div class="chip"><span>Total</span><b>${f$(tot)}</b></div>`+Object.entries(orig).sort((a,b)=>b[1].monto-a[1].monto)
+    .map(([o,v])=>`<div class="chip" style="border-left:4px solid ${c(o)}"><span>${esc(cap(o))} · ${v.n} suc.</span><b>${f$(v.monto)}</b></div>`).join('');
+  sizeBox('boxMerma',m.length);
+  hbar('chMerma',m.map(x=>cap(x.nombre)),[{data:m.map(x=>x.merma),backgroundColor:m.map(x=>c(x.origen)),borderRadius:3}],
+    {fmt:v=>'$'+loc(v,0),tip:c=>`${f$(m[c.dataIndex].merma)} · ${cap(m[c.dataIndex].origen)}`});
+  const top3=m.slice(0,3);
+  $('#txMerma').innerHTML=`La merma auditada suma <b>${f$(tot)}</b> en ${m.length} sucursales. <b>${esc(cap(m[0].nombre))}</b> sola concentra el <b>${fP(m[0].merma/tot,0)}</b> del total, y las 3 primeras (${top3.map(x=>esc(cap(x.nombre))).join(', ')}) suman el ${fP(sum(top3,'merma')/tot,0)}.`;
+}
+
+function renderInc(F){
+  const C=state.cons,ms=C.incidencias.meses,r=F.filter(x=>x.incSerie);
+  $('#s-inc').hidden=!r.length;if(!r.length)return;
+  const tot=ms.map((_,i)=>r.reduce((s,x)=>s+(x.incSerie[i]||0),0));
+  chart('chInc',{type:'line',data:{labels:ms.map(cap),datasets:[{label:'Incidencias',data:tot,borderColor:css('--accent'),backgroundColor:css('--accent-bg'),fill:true,tension:.3,pointRadius:4,pointBackgroundColor:css('--accent')}]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:css('--line')}},x:{grid:{display:false}}}}});
+  const n=ms.length,act=tot[n-1],ant=tot[n-2],max=Math.max(1,...r.flatMap(x=>x.incSerie.map(v=>v||0)));
+  const peor=[...r].sort((a,b)=>(b.incAct||0)-(a.incAct||0)).slice(0,3),cero=r.filter(x=>x.incAct===0);
+  $('#txInc').innerHTML=`En ${esc(cap(ms[n-1]))} hubo <b>${act}</b> incidencias${n>1?`, ${act<=ant?`${ant-act} menos`:`${act-ant} más`} que en ${esc(cap(ms[n-2]))}`:''}. `+
+    `Más incidencias: ${peor.map(x=>`<b>${esc(cap(x.nombre))}</b> (${x.incAct||0})`).join(', ')}.`+(cero.length?` En cero: ${cero.map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
+  const heat=v=>v==null?'<td class="h">—</td>':`<td class="h" style="background:color-mix(in srgb,var(--bad) ${Math.round(v/max*55)}%,transparent)">${v}</td>`;
+  $('#heat').innerHTML=`<thead><tr><th>Sucursal</th>${ms.map(m=>`<th>${esc(cap(m))}</th>`).join('')}</tr></thead><tbody>`+
+    [...r].sort((a,b)=>(b.incAct||0)-(a.incAct||0)).map(x=>`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</td>${x.incSerie.map(heat).join('')}</tr>`).join('')+
+    `<tr><td><b>Total</b></td>${tot.map(v=>`<td class="h"><b>${v}</b></td>`).join('')}</tr></tbody>`;
+}
+
+function renderDetalle(){
+  const list=[...state.stores.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre)||per(a.mes)-per(b.mes));
+  $('#s-det').hidden=!list.length;if(!list.length)return;
+  const sel=$('#selSuc'),prev=sel.value;
+  sel.innerHTML=list.map(s=>`<option value="${esc(s.key+'|'+s.mes)}">${esc(cap(s.nombre))} · ${esc(cap(s.mes))}</option>`).join('');
+  if(list.some(s=>s.key+'|'+s.mes===prev))sel.value=prev;
+  const s=state.stores.get(sel.value),p=s.meta?s.total/s.meta:null,a=state.stores.get(s.key+'|'+prevMes(s.mes));
+  $('#detKpis').innerHTML=[['Meta',f$(s.meta),s.promDia?`${f$(s.promDia)} por día`:''],
+    ['Venta',f$(s.total),(p==null?'':`${fP(p)} de la meta · `)+delta(s.total,a?.total,prevMes(s.mes))],
+    ['Farmacia / Misc.',fP(s.farmacia/s.total,0)+' / '+fP(s.misc/s.total,0),`${f$(s.farmacia)} / ${f$(s.misc)}`],['Clientes',fN(s.clientes),`${fN(s.clientes/(s.dias.length||1))} por día`],
+    ['Ticket promedio',f$(s.ticket),`${fN(s.facturas)} facturas`],['Unidades vendidas',fN(s.unidades),'']]
+    .map(([a,b,c],i)=>kpi(a,null,b,c,i===1)).join('');
+  chart('chDia',{data:{labels:s.dias.map(d=>d.dia),datasets:[
+    {type:'bar',label:'Venta diaria',data:s.dias.map(d=>d.venta),backgroundColor:s.dias.map(d=>s.promDia&&d.venta>=s.promDia?css('--accent'):css('--ref')),borderRadius:2},
+    ...(s.promDia?[{type:'line',label:'Promedio diario requerido',data:s.dias.map(()=>s.promDia),borderColor:css('--ink'),borderDash:[5,4],pointRadius:0,borderWidth:1.5}]:[])]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',align:'start',labels:{boxWidth:12}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${f$(c.parsed.y)}`}}},
+      scales:{y:{ticks:{callback:v=>'$'+loc(v,0)},grid:{color:css('--line')}},x:{grid:{display:false},title:{display:true,text:'Día del mes'}}}}});
+  $('#txDet').textContent=s.analisis||'La sucursal no escribió análisis en este archivo.';
+  $('#topVend').innerHTML=s.top.map(t=>`<li>${esc(t)}</li>`).join('')||'<li>Sin datos</li>';
+  $('#sinRot').innerHTML=s.sinRot.map(t=>`<li>${esc(t)}</li>`).join('')||'<li>Sin datos</li>';
+}
+
+async function handleFiles(list){
+  if(!window.XLSX){setDbNote('No se pudo cargar el lector de Excel. Revisa la conexión y recarga la página.');return;}
+  const res=await Promise.all([...list].map(async f=>{
+    try{return{name:f.name,r:parseWorkbook(XLSX.read(await f.arrayBuffer(),{type:'array'}),f.name)};}
+    catch(e){return{name:f.name,r:{kind:'error',msg:'No se pudo leer: '+e.message}};}
+  }));
+  const items=res.map((x,i)=>({name:x.name,r:x.r,orden:Date.now()+i}));
+  if(!db){state.files.push(...items.map(x=>({id:String(nextId++),...x})));derive();render();return;}
+  setDbNote(`Guardando ${items.length} archivo${items.length>1?'s':''}…`);
+  const {error}=await db.from('archivos').insert(items);
+  if(error)setDbNote(writeError(error));else{setDbNote('');await cargar();}
+}
+
+const drop=$('#drop');
+$('#file').addEventListener('change',e=>{handleFiles(e.target.files);e.target.value='';});
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{state.filtro=b.dataset.f;render();}));
+$('#selSuc').addEventListener('change',renderDetalle);
+$('#selRes').addEventListener('change',e=>{state.suc=e.target.value;render();});
+$('#ncGrid').addEventListener('click',e=>{const b=e.target.closest('[data-ver]');if(!b)return;$('#selSuc').innerHTML=`<option value="${esc(b.dataset.ver)}"></option>`;$('#selSuc').value=b.dataset.ver;setTab('sucursal');});
+// Deleting everything is shared and permanent, so the first click only arms the button.
+$('#reset').addEventListener('click',e=>{const b=e.currentTarget;
+  if(!b.dataset.armed){b.dataset.armed='1';b.textContent='Confirmar: eliminar todos';return;}
+  borrar(state.files.map(f=>f.id));});
+$('#archivos').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(b)borrar([b.dataset.del]);});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+setTab(location.hash.slice(1));
+boot();
+</script>
