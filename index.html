@@ -307,7 +307,7 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
       </div>
       <div class="card read">
         <h3>Cómo leer</h3>
-        <p class="formula">Ticket promedio = venta del mes ÷ facturas. Cada grupo tiene su mínimo (línea punteada): verde si la sucursal lo alcanza, rojo si queda por debajo.</p>
+        <p class="formula">Ticket promedio = venta del mes ÷ facturas. Cada grupo tiene su mínimo (línea punteada): verde si la sucursal lo alcanza, rojo si queda por debajo. La barra gris es el mes anterior.</p>
         <h3>Análisis</h3>
         <p class="an" id="txTicket"></p>
       </div>
@@ -708,7 +708,7 @@ function render(){
   $('#selRes').value=state.suc;
   const R=state.suc?todas.filter(x=>x.key===state.suc):F;
   ['cardRes','cardMetas','cardTabla'].forEach(id=>$('#'+id).hidden=!!state.suc);
-  renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderVentas(F,mes,ant);renderTicket(F);renderNoConf(F,mes,ant);renderFarm(F);
+  renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderVentas(F,mes,ant);renderTicket(F,mes,ant);renderNoConf(F,mes,ant);renderFarm(F);
   ['s-aud','s-merma','s-inc'].forEach(id=>$('#'+id).hidden=!C);
   if(C){renderAud(F);renderMerma(F);renderInc(F);}
   renderDetalle();
@@ -847,29 +847,34 @@ function renderVentas(F,mes,ant){
 const lineaMin=v=>({id:'min',afterDatasetsDraw(c){const x=c.scales.x.getPixelForValue(v),{top,bottom}=c.chartArea,ctx=c.ctx;
   ctx.save();ctx.strokeStyle=css('--ink');ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
   ctx.fillStyle=css('--ink');ctx.font=`600 11px ${css('--f-body')}`;ctx.textAlign='left';ctx.fillText('mín. '+f$(v),x+4,top+10);ctx.restore();}});
-function renderTicket(F){
+function renderTicket(F,mes,ant){
   // Some files leave Facturas empty (Express Chimborazo); there the ticket uses clientes, which run close to facturas elsewhere.
-  const tk=F.filter(x=>x.real!=null&&(x.fac>0||x.cliAct>0)).map(x=>x.fac>0?{...x,t:x.real/x.fac}:{...x,t:x.real/x.cliAct,porCli:true});
+  const tk=F.filter(x=>x.real!=null&&(x.fac>0||x.cliAct>0)).map(x=>({...(x.fac>0?{t:x.real/x.fac}:{t:x.real/x.cliAct,porCli:true}),...x,
+    tA:x.realAnt==null?null:x.facAnt>0?x.realAnt/x.facAnt:x.cliAnt>0?x.realAnt/x.cliAnt:null}));
   const G=GRUPOS_TICKET.map(g=>{const keys=new Set(g.suc.map(storeKey));return{...g,rows:tk.filter(x=>keys.has(x.key)).sort((a,b)=>b.t-a.t)};});
   const sinGrupo=tk.filter(x=>!G.some(g=>g.rows.includes(x)));
   $('#s-ticket').hidden=!tk.length;if(!tk.length)return;
   $('#tkGrupos').innerHTML=G.filter(g=>g.rows.length).map(g=>`<div class="card-h"><h2>Grupo ${g.n} · mínimo ${f$(g.min)}</h2></div><div class="chart" id="boxTk${g.n}"><canvas id="chTk${g.n}" aria-label="Ticket promedio del grupo ${g.n}"></canvas></div>`).join('');
   for(const g of G){if(!g.rows.length)continue;
-    sizeBox('boxTk'+g.n,g.rows.length);
-    const max=Math.max(g.min,...g.rows.map(x=>x.t))*1.1;
-    hbar('chTk'+g.n,g.rows.map(x=>cap(x.nombre)),[{label:'Ticket promedio',data:g.rows.map(x=>x.t),backgroundColor:g.rows.map(x=>x.t>=g.min?css('--good'):css('--bad')),borderRadius:3}],
-      {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];return[`Ticket: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,x.porCli?`${fN(x.cliAct)} clientes (el archivo no trae facturas)`:`${fN(x.fac)} facturas`];}});
-    charts['chTk'+g.n].options.scales.x.suggestedMax=max;charts['chTk'+g.n].update();}
-  const con=G.filter(g=>g.rows.length),ok=con.reduce((s,g)=>s+g.rows.filter(x=>x.t>=g.min).length,0),tot=con.reduce((s,g)=>s+g.rows.length,0);
+    sizeBox('boxTk'+g.n,g.rows.length*1.7);
+    const max=Math.max(g.min,...g.rows.map(x=>Math.max(x.t,x.tA||0)))*1.1;
+    hbar('chTk'+g.n,g.rows.map(x=>cap(x.nombre)),[{label:cap(mes),data:g.rows.map(x=>x.t),backgroundColor:g.rows.map(x=>x.t>=g.min?css('--good'):css('--bad')),borderRadius:3},
+      {label:cap(ant),data:g.rows.map(x=>x.tA),backgroundColor:css('--ref'),borderRadius:3}],
+      {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];if(c.datasetIndex)return[`${cap(ant)}: ${f$(x.tA)}`,`Cambio a ${cap(mes)}: ${x.t>=x.tA?'+':'−'}${f$(Math.abs(x.t-x.tA))} (${fP((x.t-x.tA)/x.tA)})`];return[`${cap(mes)}: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,x.porCli?`${fN(x.cliAct)} clientes (el archivo no trae facturas)`:`${fN(x.fac)} facturas`];}});
+    const o=charts['chTk'+g.n].options;o.scales.x.suggestedMax=max;o.plugins.legend.labels.generateLabels=()=>[[cap(mes),'--good'],[cap(ant),'--ref']].map(([text,v])=>({text,fillStyle:css(v),strokeStyle:css(v),fontColor:css('--muted')}));charts['chTk'+g.n].update();}
+  const con=G.filter(g=>g.rows.length),ok=con.reduce((s,g)=>s+g.rows.filter(x=>x.t>=g.min).length,0),cA=con.flatMap(g=>g.rows.filter(x=>x.tA!=null).map(x=>x.tA>=g.min)),tot=con.reduce((s,g)=>s+g.rows.length,0);
   const centro={id:'centro',afterDraw(c){const {left,right,top,bottom}=c.chartArea,ctx=c.ctx,x=(left+right)/2,y=(top+bottom)/2;ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillStyle=css('--ink');ctx.font=`750 1.6rem ${css('--f-display')}`;ctx.fillText(fP(ok/tot,0),x,y-8);
     ctx.fillStyle=css('--muted');ctx.font=`500 12px ${css('--f-body')}`;ctx.fillText(`${ok} de ${tot}`,x,y+16);ctx.restore();}};
   chart('chTkDona',{type:'doughnut',plugins:[centro],data:{labels:['Alcanzan el mínimo','Por debajo'],datasets:[{data:[ok,tot-ok],backgroundColor:[css('--good'),css('--bad')],borderWidth:0}]},
     options:{maintainAspectRatio:false,animation:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} sucursales`}}}}});
   $('#tkLeg').innerHTML=con.map(g=>{const k=g.rows.filter(x=>x.t>=g.min).length;
-    return `<li><span class="dot" style="background:var(${k===g.rows.length?'--good':k?'--warn':'--bad'})"></span>Grupo ${g.n} · ${f$(g.min)}<b>${k} de ${g.rows.length} · ${fP(k/g.rows.length,0)}</b></li>`;}).join('');
+    return `<li><span class="dot" style="background:var(${k===g.rows.length?'--good':k?'--warn':'--bad'})"></span>Grupo ${g.n} · ${f$(g.min)}<b>${k} de ${g.rows.length} · ${fP(k/g.rows.length,0)}</b></li>`;}).join('')+
+    (cA.length?`<li><span class="dot" style="background:var(--ref)"></span>En ${esc(cap(ant))}<b>${cA.filter(Boolean).length} de ${cA.length} · ${fP(cA.filter(Boolean).length/cA.length,0)}</b></li>`:'');
   $('#txTicket').innerHTML=G.filter(g=>g.rows.length).map(g=>{const no=g.rows.filter(x=>x.t<g.min);
-    return `<b>Grupo ${g.n}</b>: ${g.rows.length-no.length} de ${g.rows.length} alcanzan ${f$(g.min)}.`+(no.length?` Por debajo: ${no.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'');}).join('<br>')+
+    return `<b>Grupo ${g.n}</b>: ${g.rows.length-no.length} de ${g.rows.length} alcanzan ${f$(g.min)}.`+(no.length?` Por debajo: ${no.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
+      (()=>{const c=g.rows.filter(x=>x.tA),up=c.filter(x=>x.t>x.tA).length;return c.length?` Frente a ${esc(cap(ant))} el ticket subió en ${up} y bajó en ${c.length-up}.`:'';})();}).join('<br>')+
+    (()=>{const c=tk.filter(x=>x.tA).sort((a,b)=>(b.t-b.tA)-(a.t-a.tA));return c.length>1?`<br>Mayor subida: <b>${esc(cap(c[0].nombre))}</b> (${f$(c[0].tA)} → ${f$(c[0].t)}). Mayor caída: <b>${esc(cap(c.at(-1).nombre))}</b> (${f$(c.at(-1).tA)} → ${f$(c.at(-1).t)}).`:'';})()+
     (sinGrupo.length?`<br>Sin grupo asignado: ${sinGrupo.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
     (tk.some(x=>x.porCli)?`<br>Sin facturas en el archivo, calculado con clientes: ${tk.filter(x=>x.porCli).map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
 }
