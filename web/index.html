@@ -143,6 +143,11 @@ tbody tr:hover td{background:var(--surface-2)}
 .bar i{display:inline-block;height:6px;border-radius:3px;background:var(--surface-2);width:60px;position:relative;overflow:hidden}
 .bar i u{position:absolute;inset:0 auto 0 0;background:var(--accent)}
 .heat td.h{min-width:42px;text-align:center}
+#incKpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){#incKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.an ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.heat tr.grp td{background:var(--surface-2);color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.mbar{height:7px;border-radius:3px;min-width:2px}
 .chips{display:flex;flex-wrap:wrap;gap:10px}
 .chip{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface);font-size:.84rem;color:var(--muted)}
 .chip b{display:block;font-family:var(--f-display);font-size:1.2rem;color:var(--ink)}
@@ -388,11 +393,11 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
           <p class="formula">Celda <b>gris</b>: dentro del límite. Celda <b>roja</b>: pasó el límite (más intenso = más incidencias). La última columna compara con el mes anterior: <span class="up">↓ bajó</span>, <span class="down">↑ subió</span>.</p>
           <p class="formula"><b>Reincidente</b>: pasó el límite en todos los meses cargados.</p>
           <h3>Análisis</h3>
-          <p class="an" id="txInc"></p>
+          <div class="an" id="txInc"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-h"><div><h2>Incidencias por sucursal</h2><p>Ordenadas de más a menos en el último mes</p></div></div>
+        <div class="card-h"><div><h2>Incidencias por sucursal</h2><p>Gris: dentro del límite · Rojo: lo pasó · Ordenadas de más a menos en el último mes</p></div></div>
         <div class="tbl"><table id="heat" class="heat"></table></div>
       </div>
     </section>
@@ -768,8 +773,13 @@ function renderKpis(F,mes,ant){
     state.suc?kpi('Cumplimiento','target',cm.length?fP(real/meta):'—',cm.length?(ok?'<span class="delta up">Conforme</span>':'<span class="delta down">No conforme</span>')+(ca.length?` · ${esc(cap(ant))}: ${fP(sum(ca,'realAnt')/sum(ca,'metaAnt'))}`:''):`Sin archivo de ${esc(cap(mes))}`):
     kpi('Sucursales en meta','target',cm.length?`${ok} de ${cm.length}`:'—',cm.length?`${fP(ok/cm.length,0)} conformes`+(ca.length?` · ${esc(cap(ant))}: ${fP(okAnt/ca.length,0)}`:''):''),
     kpi('Clientes recibidos','users',fN(sum(F.filter(x=>x.cliAct!=null),'cliAct')),delta(sum(cp,'cliAct'),sum(cp,'cliAnt'),ant)),
-    ...(state.suc&&state.inc?[(()=>{const x=F.find(x=>x.incSerie),ms=state.inc.meses,m=ms.at(-1),a=ms.at(-2);
-      return kpi('Incidencias','alerta',x?fN(x.incAct):'—',x?(x.incAct<=LIMITE_INC?'<span class="delta up">Dentro del límite</span>':'<span class="delta down">Pasó el límite</span>')+` · ${esc(cap(m))}`+(a&&x.incAnt!=null?` · ${esc(cap(a))}: ${fN(x.incAnt)}`:''):'No aparece en la hoja de incidencias');})()]:[]),
+    ...(state.suc&&state.inc?[(()=>{const x=F.find(x=>x.incSerie),ms=state.inc.meses,m=ms.at(-1),a=ms.at(-2),L=LIMITE_INC;
+      if(!x)return kpi('Incidencias','alerta','—','No aparece en la hoja de incidencias');
+      const re=ms.length>1&&x.incSerie.every(v=>v!=null&&v>L),d=x.incAnt==null?null:x.incAct-x.incAnt;
+      const est=re?'<span class="delta down">Reincidente</span>':x.incAct<=L?'<span class="delta up">Dentro del límite</span>':'<span class="delta down">Fuera del límite</span>';
+      const cmp=d==null?'':` · <span class="${d<=0?'up':'down'}">${d<0?'↓':d>0?'↑':'='} ${d?Math.abs(d):''}</span> vs ${esc(cap(a))} (${fN(x.incAnt)})`;
+      const serie=ms.map((mm,i)=>`${esc(cap(mm).slice(0,3))} <span style="font-weight:700;color:var(--ink)">${fN(x.incSerie[i])}</span>`).join(' · ');
+      return kpi(`Incidencias · ${esc(cap(m))}`,'alerta',fN(x.incAct),`<span style="flex-basis:100%">${est}${cmp}</span><span style="flex-basis:100%">${serie} · límite ${L}</span>`);})()]:[]),
     kpi('Ticket promedio','ticket',tk.length?f$(sum(tk,'real')/sum(tk,'fac')):'—',tp.length?delta(sum(tp,'real')/sum(tp,'fac'),sum(tp,'realAnt')/sum(tp,'facAnt'),ant):`Sin datos de ${esc(cap(ant))}`),
   ].join('');
 }
@@ -999,27 +1009,41 @@ function renderInc(F){
   $('#s-inc').hidden=!r.length;if(!r.length)return;
   const m=ms[n-1],a=ms[n-2],tot=ms.map((_,i)=>r.reduce((s,x)=>s+(x.incSerie[i]||0),0));
   const v=x=>x.incSerie[n-1]??0,w=x=>x.incSerie[n-2]??0,reinc=x=>n>1&&x.incSerie.every(v=>v!=null&&v>L);
-  const ok=r.filter(x=>v(x)<=L),okA=n>1?r.filter(x=>w(x)<=L):[],mej=r.filter(x=>v(x)<w(x)),peo=r.filter(x=>v(x)>w(x)).sort((p,q)=>(v(q)-w(q))-(v(p)-w(p))),re=r.filter(reinc);
+  const ok=r.filter(x=>v(x)<=L),okA=n>1?r.filter(x=>w(x)<=L):[],mej=r.filter(x=>v(x)<w(x)).sort((p,q)=>(v(p)-w(p))-(v(q)-w(q))),
+    peo=r.filter(x=>v(x)>w(x)).sort((p,q)=>(v(q)-w(q))-(v(p)-w(p))),re=r.filter(reinc).sort((p,q)=>v(q)-v(p));
   $('#incLim').textContent=L;
   $('#incKpis').innerHTML=[
-    kpi(`Incidencias de ${esc(cap(m))}`,'alerta',fN(tot[n-1]),n>1?delta(tot[n-1],tot[n-2],a,true):'',true),
-    kpi('Dentro del límite','target',`${ok.length} de ${r.length}`,`Máximo ${L} al mes`+(n>1?` · ${esc(cap(a))}: ${okA.length} de ${r.length}`:'')),
-    kpi('Mejoraron','users',n>1?`${mej.length} de ${r.length}`:'—',n>1?`Bajaron sus incidencias frente a ${esc(cap(a))}`:''),
-    kpi('Reincidentes','alerta',n>1?fN(re.length):'—',n>1?`Pasaron el límite en los ${n} meses`:'')].join('');
-  chart('chInc',{type:'bar',data:{labels:ms.map(cap),datasets:[{label:'Incidencias',data:tot,backgroundColor:tot.map((_,i)=>i===n-1?css('--bad'):css('--ref')),borderRadius:4}]},
-    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:css('--line')}},x:{grid:{display:false}}}}});
-  const max=Math.max(1,...r.flatMap(x=>x.incSerie.map(v=>v||0)));
+    kpi(`Incidencias de ${esc(cap(m))}`,'alerta',fN(tot[n-1]),n>1?delta(tot[n-1],tot[n-2],a,true)+` (${fN(tot[n-2])})`:''),
+    kpi(`Dentro del límite (≤ ${L})`,'target',`${ok.length} de ${r.length}`,n>1?`${esc(cap(a))}: ${okA.length} de ${r.length}`:`Máximo ${L} al mes`),
+    kpi('Mejoraron','users',n>1?`${mej.length} de ${r.length}`:'—',n>1?`Empeoraron: ${peo.length}`:''),
+    kpi('Reincidentes','alerta',n>1?`<span class="down">${re.length}</span>`:'—',n>1?`Sobre el límite los ${n} meses`:'')].join('');
+  // Total above each bar and its change against the previous bar.
+  const etiq={id:'etiq',afterDatasetsDraw(c){const ctx=c.ctx;ctx.save();ctx.textAlign='center';
+    c.getDatasetMeta(0).data.forEach((b,i)=>{const t=tot[i],p=tot[i-1];
+      ctx.font=`700 12px ${css('--f-body')}`;ctx.fillStyle=css('--ink');ctx.fillText(fN(t),b.x,b.y-(i&&p?20:6));
+      if(i&&p){const d=(t-p)/p;ctx.font=`600 11px ${css('--f-body')}`;ctx.fillStyle=d<=0?css('--good'):css('--bad');ctx.fillText(`${d<=0?'↓':'↑'} ${fP(Math.abs(d),0)}`,b.x,b.y-6);}});
+    ctx.restore();}};
+  chart('chInc',{type:'bar',plugins:[etiq],data:{labels:ms.map(cap),datasets:[{label:'Incidencias',data:tot,backgroundColor:tot.map((_,i)=>i===n-1?css('--bad'):css('--ref')),borderRadius:4}]},
+    options:{maintainAspectRatio:false,animation:false,layout:{padding:{top:30}},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:css('--line')}},x:{grid:{display:false}}}}});
+  const max=Math.max(1,...r.flatMap(x=>x.incSerie.map(v=>v||0))),maxM=Math.max(1,...r.map(v));
   const heat=v=>v==null?'<td class="h">—</td>':v<=L?`<td class="h" style="background:var(--surface-2);color:var(--muted)">${v}</td>`
     :`<td class="h" style="background:color-mix(in srgb,var(--bad) ${Math.round(20+v/max*50)}%,transparent)">${v}</td>`;
   const flecha=x=>{const d=v(x)-w(x);return n<2?'':`<td class="h ${d<0?'up':d>0?'down':''}">${d<0?'↓':d>0?'↑':'='} ${d?Math.abs(d):''}</td>`;};
-  $('#heat').innerHTML=`<thead><tr><th>Sucursal</th>${ms.map(m=>`<th>${esc(cap(m))}</th>`).join('')}${n>1?`<th>vs ${esc(cap(a))}</th>`:''}</tr></thead><tbody>`+
-    [...r].sort((p,q)=>v(q)-v(p)||w(q)-w(p)).map(x=>`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}${reinc(x)?'<span class="pill no" style="margin-left:6px">Reincidente</span>':''}</td>${x.incSerie.map(heat).join('')}${flecha(x)}</tr>`).join('')+
-    `<tr><td><b>Total</b></td>${tot.map(v=>`<td class="h"><b>${v}</b></td>`).join('')}${n>1?'<td></td>':''}</tr></tbody>`;
+  const estado=x=>reinc(x)?'<span class="pill" style="background:var(--bad);color:var(--surface)">Reincidente</span>':v(x)>L?'<span class="pill no">Fuera</span>':'<span class="pill ok">Dentro</span>';
+  const fila=x=>`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</td><td>${estado(x)}</td>${x.incSerie.map(heat).join('')}${flecha(x)}`+
+    `<td style="min-width:90px"><div class="mbar" style="width:${v(x)/maxM*100}%;background:var(${v(x)>L?'--bad':'--ref'})"></div></td></tr>`;
+  const ord=xs=>[...xs].sort((p,q)=>v(q)-v(p)||w(q)-w(p)),fuera=ord(r.filter(x=>v(x)>L)),cols=n+(n>1?4:3);
+  const grp=t=>`<tr class="grp"><td colspan="${cols}">${t}</td></tr>`;
+  $('#heat').innerHTML=`<thead><tr><th>Sucursal</th><th>Estado</th>${ms.map(m=>`<th>${esc(cap(m))}</th>`).join('')}${n>1?`<th>vs ${esc(cap(a))}</th>`:''}<th>${esc(cap(m))}</th></tr></thead><tbody>`+
+    (fuera.length?grp(`Fuera del límite · ${fuera.length}`)+fuera.map(fila).join(''):'')+(ok.length?grp(`Dentro del límite · ${ok.length}`)+ord(ok).map(fila).join(''):'')+
+    `<tr><td><b>Total</b></td><td></td>${tot.map(v=>`<td class="h"><b>${v}</b></td>`).join('')}${n>1?'<td></td>':''}<td></td></tr></tbody>`;
   const lista=xs=>xs.map(x=>`${esc(cap(x.nombre))} (${n>1?`${w(x)} → `:''}${v(x)})`).join(', ');
-  $('#txInc').innerHTML=`En ${esc(cap(m))} hubo <b>${tot[n-1]}</b> incidencias`+(n>1?`, ${tot[n-1]<=tot[n-2]?`${tot[n-2]-tot[n-1]} menos`:`${tot[n-1]-tot[n-2]} más`} que en ${esc(cap(a))} (${tot[n-2]})`:'')+
-    `. <b>${ok.length} de ${r.length}</b> sucursales quedaron dentro del límite de ${L}`+(n>1?` (en ${esc(cap(a))} eran ${okA.length})`:'')+'.'+
-    (peo.length?`<br><br>Empeoraron: ${lista(peo)}.`:'')+
-    (re.length?`<br><br><b>${re.length} reincidentes</b>, sobre el límite los ${n} meses: ${lista([...re].sort((p,q)=>v(q)-v(p)))}.`:'');
+  const li=[`En ${esc(cap(m))} hubo <b>${tot[n-1]}</b> incidencias`+(n>1?`: ${tot[n-1]<=tot[n-2]?`<span class="up">${tot[n-2]-tot[n-1]} menos</span>`:`<span class="down">${tot[n-1]-tot[n-2]} más</span>`} que en ${esc(cap(a))} (${tot[n-2]}).`:'.'),
+    `<b>${ok.length} de ${r.length}</b> sucursales dentro del límite de ${L}`+(n>1?` (en ${esc(cap(a))} eran ${okA.length}).`:'.')];
+  if(peo.length)li.push(`<span class="down">Más subieron:</span> ${lista(peo.slice(0,3))}.`);
+  if(mej.length)li.push(`<span class="up">Más bajaron:</span> ${lista(mej.slice(0,3))}.`);
+  if(re.length)li.push(`<span class="down"><b>${re.length} reincidentes</b></span> (sobre el límite los ${n} meses): ${lista(re)}.`);
+  $('#txInc').innerHTML=`<ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
 }
 
 function renderDetalle(){
