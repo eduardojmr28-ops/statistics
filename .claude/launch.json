@@ -1,0 +1,6 @@
+﻿{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "statistics", "runtimeExecutable": "node", "runtimeArgs": ["tests/serve.js"], "port": 5180 }
+  ]
+}

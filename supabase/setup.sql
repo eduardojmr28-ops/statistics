@@ -1,6 +1,6 @@
 -- Statistics: tabla de archivos cargados.
 -- Pégalo completo en Supabase > SQL Editor > New query y pulsa Run.
--- ANTES de correrlo, cambia TU_CORREO@ejemplo.com (aparece 2 veces) por el correo del administrador.
+-- El correo del administrador aparece 2 veces; cámbialo ahí si cambia el administrador.
 
 create table if not exists public.archivos (
   id     uuid primary key default gen_random_uuid(),
@@ -21,12 +21,12 @@ create policy "todos leen" on public.archivos
 drop policy if exists "admin sube" on public.archivos;
 create policy "admin sube" on public.archivos
   for insert to authenticated
-  with check ((auth.jwt() ->> 'email') = 'TU_CORREO@ejemplo.com');
+  with check ((auth.jwt() ->> 'email') = 'eduardojmr28@gmail.com');
 
 drop policy if exists "admin elimina" on public.archivos;
 create policy "admin elimina" on public.archivos
   for delete to authenticated
-  using ((auth.jwt() ->> 'email') = 'TU_CORREO@ejemplo.com');
+  using ((auth.jwt() ->> 'email') = 'eduardojmr28@gmail.com');
 
 -- Para que los cambios aparezcan en vivo a quien tenga el tablero abierto.
 do $$ begin
