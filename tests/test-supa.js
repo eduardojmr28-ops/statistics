@@ -14,7 +14,7 @@ w.supabase = { createClient: () => ({
   auth: {
     getSession: async () => ({ data: { session } }),
     onAuthStateChange: cb => { authCb = cb; },
-    signInWithOtp: async o => { otp = o; return { error: null }; },
+    signInWithPassword: async o => { otp = o; return o.password === 'buena' ? { error: null } : { error: { message: 'Invalid login credentials' } }; },
     signOut: async () => { session = null; authCb('SIGNED_OUT', null); },
   },
   from: () => ({
@@ -38,9 +38,11 @@ const tick = () => new Promise(r => setTimeout(r, 20));
   await w.handleFiles([file]);
   assert.equal(rows.length, 0); assert.match($('#dbNote').textContent, /permiso/);
 
-  // login sends a magic link without creating users
-  $('#correo').value = 'admin@x'; $('#login').dispatchEvent(new w.Event('submit', { cancelable: true })); await tick();
-  assert.equal(otp.email, 'admin@x'); assert.equal(otp.options.shouldCreateUser, false);
+  // password login: wrong password shows an error and clears the field
+  $('#correo').value = 'admin@x'; $('#clave').value = 'mala'; $('#login').dispatchEvent(new w.Event('submit', { cancelable: true })); await tick();
+  assert.equal(otp.email, 'admin@x'); assert.match($('#adminTxt').textContent, /incorrectos/); assert.equal($('#clave').value, '');
+  $('#clave').value = 'buena'; $('#login').dispatchEvent(new w.Event('submit', { cancelable: true })); await tick();
+  assert.equal(otp.password, 'buena');
 
   // admin: can upload, the table fills, then delete
   session = { user: { email: 'admin@x' } }; authCb('SIGNED_IN', session); await tick();
