@@ -367,8 +367,8 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
   <div class="view" id="v-archivos" hidden>
     <div class="card" id="admin">
       <div class="card-h"><h2>Administrador</h2><button class="btn sm" id="salir" hidden>Salir</button></div>
-      <p class="note" id="adminTxt">Solo el administrador puede subir o eliminar archivos. Escribe tu correo y te llegará un enlace para entrar.</p>
-      <form id="login" style="display:flex;gap:8px;flex-wrap:wrap"><input type="email" id="correo" required placeholder="nombre@empresa.com" aria-label="Correo del administrador" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit"><button class="btn primary" type="submit">Enviar enlace</button></form>
+      <p class="note" id="adminTxt">Solo el administrador puede subir o eliminar archivos. Entra con tu correo y contraseña.</p>
+      <form id="login" style="display:flex;gap:8px;flex-wrap:wrap"><input type="email" id="correo" required autocomplete="username" placeholder="nombre@empresa.com" aria-label="Correo del administrador" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit"><input type="password" id="clave" required autocomplete="current-password" placeholder="Contraseña" aria-label="Contraseña" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit"><button class="btn primary" type="submit">Entrar</button></form>
     </div>
     <label class="drop" id="drop" for="file">
       <input type="file" id="file" multiple accept=".xls,.xlsx" style="position:absolute;opacity:0;width:1px;height:1px">
@@ -550,7 +550,7 @@ async function cargar(){
 }
 function sesion(s){
   canWrite=!!s;$('#login').hidden=canWrite;$('#salir').hidden=!canWrite;
-  $('#adminTxt').textContent=canWrite?`Entraste como ${s.user.email}. Puedes subir y eliminar archivos.`:'Solo el administrador puede subir o eliminar archivos. Escribe tu correo y te llegará un enlace para entrar.';
+  $('#adminTxt').textContent=canWrite?`Entraste como ${s.user.email}. Puedes subir y eliminar archivos.`:'Solo el administrador puede subir o eliminar archivos. Entra con tu correo y contraseña.';
   render();
 }
 async function boot(){
@@ -571,8 +571,10 @@ async function borrar(ids){
   if(error)setDbNote(writeError(error));else await cargar();
 }
 $('#login').addEventListener('submit',async e=>{e.preventDefault();
-  const {error}=await db.auth.signInWithOtp({email:$('#correo').value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
-  $('#adminTxt').textContent=error?'No se pudo enviar el enlace. Revisa que el correo sea el del administrador.':'Listo. Revisa tu correo y abre el enlace desde este mismo navegador.';});
+  // Password sign-in: an emailed link only signs in whichever browser opens it, which kept landing elsewhere.
+  const {error}=await db.auth.signInWithPassword({email:$('#correo').value.trim(),password:$('#clave').value});
+  $('#clave').value='';
+  if(error)$('#adminTxt').textContent=/rate|too many/i.test(error.message)?'Demasiados intentos. Espera unos minutos.':'Correo o contraseña incorrectos.';});
 $('#salir').addEventListener('click',()=>db.auth.signOut());
 // Data is rebuilt from the loaded files in order, so removing one file drops only what it contributed; a later file for the same store and month wins.
 function derive(){
