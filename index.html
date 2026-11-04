@@ -195,10 +195,10 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
     <button data-tab="ticket" data-title="Ticket promedio por grupo"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>Ticket promedio</button>
     <button data-tab="depto" data-title="Farmacia y misceláneos"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/></svg>Farmacia y misc.</button>
     <button data-tab="sucursal" data-title="Detalle de sucursal"><svg class="ic" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9M4 9v11h16V9M3 9h18M9 20v-6h6v6"/></svg>Sucursal</button>
+    <button data-tab="incidencias" data-title="Incidencias de reporte de venta" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9.5 17H2.5zM12 10v4M12 17v.5"/></svg>Incidencias</button>
     <p class="menu-h" id="menuCons" hidden>Consolidado</p>
     <button data-tab="auditoria" data-title="Indicador de auditoría" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/></svg>Auditoría</button>
     <button data-tab="merma" data-title="Indicador de merma" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/></svg>Merma</button>
-    <button data-tab="incidencias" data-title="Incidencias de reporte de venta" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9.5 17H2.5zM12 10v4M12 17v.5"/></svg>Incidencias</button>
     <p class="menu-h">Datos</p>
     <button data-tab="archivos" data-title="Archivos"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Archivos <span class="count" id="nArch">0</span></button>
   </nav>
@@ -376,16 +376,25 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
 
   <div class="view" id="v-incidencias" hidden>
     <section class="sec" id="s-inc">
+      <div class="kpis" id="incKpis"></div>
       <div class="body">
-        <div class="card"><div class="card-h"><h2>Incidencias por mes</h2></div><div class="chart" id="boxInc" style="height:260px"><canvas id="chInc" aria-label="Incidencias por mes"></canvas></div></div>
+        <div class="card">
+          <div class="card-h"><div><h2>Total de la cadena</h2><p>Incidencias por mes</p></div></div>
+          <div class="chart" style="height:260px"><canvas id="chInc" aria-label="Incidencias por mes"></canvas></div>
+        </div>
         <div class="card read">
           <h3>Cómo leer</h3>
-          <p class="formula">Cada incidencia es un reporte de venta que llegó con errores o fuera de tiempo. Menos es mejor.</p>
+          <p class="formula">Cada incidencia es un reporte de venta que llegó con errores o fuera de tiempo: menos es mejor. El límite aceptable es <b id="incLim"></b> al mes.</p>
+          <p class="formula">Celda <b>gris</b>: dentro del límite. Celda <b>roja</b>: pasó el límite (más intenso = más incidencias). La última columna compara con el mes anterior: <span class="up">↓ bajó</span>, <span class="down">↑ subió</span>.</p>
+          <p class="formula"><b>Reincidente</b>: pasó el límite en todos los meses cargados.</p>
           <h3>Análisis</h3>
           <p class="an" id="txInc"></p>
         </div>
       </div>
-      <div class="card"><div class="tbl"><table id="heat" class="heat"></table></div></div>
+      <div class="card">
+        <div class="card-h"><div><h2>Incidencias por sucursal</h2><p>Ordenadas de más a menos en el último mes</p></div></div>
+        <div class="tbl"><table id="heat" class="heat"></table></div>
+      </div>
     </section>
   </div>
 
@@ -430,7 +439,7 @@ const mesDe=s=>MESES.find(m=>norm(s).includes(m))||(typeof s==='number'&&s>20000
 // Store names are typed differently on each sheet (EXPRESS TIPURO / TIPURO XPRESS, POD HOSPITAL / P. HOSPITAL); this key makes them match.
 const STOP=new Set(['EXPRESS','XPRESS','EXPPRESS','AV','LA','LAS','LOS','EL']);
 // Pairs confirmed by the chain; names outside SUCURSALES show in the "sin pareja" note so new ones can be added here.
-const ALIAS={'PLAZA PIAR':'PIAR','TIPURO HANADY':'TIPURO PALMA REAL'};
+const ALIAS={'PLAZA PIAR':'PIAR','PODEROSO JUNCAL':'PODEROSO','TIPURO HANADY':'TIPURO PALMA REAL'};
 // "TIPURO" alone (store code 07) is Palma Real; Tipuro Express files say "TIPURO EXPRESS" (code 14).
 const NOMBRES={'PRINCIPAL':'LAS BRISAS','AV BICENTENARIO':'AV BOLIVAR','AV LA PAZ':'PODEROSO AV LA PAZ','TIPURO':'TIPURO PALMA REAL'};
 const SUCURSALES=['AV BOLIVAR','GOBERNACION','EXPRESS CHIMBORAZO','JUNCAL','MERCADO','FLORESTA','PODEROSO','SAMANES','LA CRUZ','BOQUERON',
@@ -458,6 +467,18 @@ function sheet(wb,word){const n=wb.SheetNames.find(s=>norm(s).includes(word));re
 // Reads a column list under a header: name at nameCol, stops at the first empty name.
 function listRows(g,h,nameCol,fn){const out=[];for(let r=h[0]+1;r<g.length;r++){const n=at(g,r,nameCol);if(!norm(n))break;const x=fn(r);if(x)out.push(x);}return out;}
 
+// Stores in rows, months in columns (header row = first row with 2+ month names); the list ends at the first row with no store name,
+// so the totals row below it is left out. Months with no number for any store (NOVIEMBRE still empty) are dropped.
+function leerIncidencias(g){
+  const R={meses:[],filas:[]},hr=g.findIndex(row=>(row||[]).filter(x=>MESES.includes(norm(x))).length>=2);
+  if(hr<0)return R;
+  const row=g[hr],c0=row.findIndex(x=>MESES.includes(norm(x)));
+  let c=c0;while(MESES.includes(norm(row[c])))R.meses.push(norm(row[c++]));
+  R.filas=listRows(g,[hr,c0],c0-1,r=>({nombre:cleanName(at(g,r,c0-1)),valores:R.meses.map((_,i)=>num(at(g,r,c0+i)))}));
+  let n=R.meses.length;while(n&&R.filas.every(f=>f.valores[n-1]==null))n--;
+  R.meses=R.meses.slice(0,n);R.filas.forEach(f=>f.valores=f.valores.slice(0,n));
+  return R;
+}
 function parseConsolidado(wb,file){
   const C={kind:'consolidado',file,ventas:[],clientes:{},mesesClientes:[],causas:[],auditoria:[],merma:[],incidencias:{meses:[],filas:[]}};
   const v=sheet(wb,'INDICADOR VENTAS');
@@ -483,14 +504,7 @@ function parseConsolidado(wb,file){
   if(m){const h=findCell(m,s=>s==='MERMA');
     if(h)C.merma=listRows(m,h,h[1]-1,r=>{const monto=num(at(m,r,h[1]));return monto==null?null:{nombre:cleanName(at(m,r,h[1]-1)),monto,origen:String(at(m,r,h[1]+1)??'SIN ORIGEN').trim().toUpperCase()};});}
   const inc=sheet(wb,'INCIDENCIAS');
-  if(inc){
-    const hr=inc.findIndex(row=>(row||[]).filter(x=>MESES.includes(norm(x))).length>=2);
-    if(hr>=0){
-      const row=inc[hr],c0=row.findIndex(x=>MESES.includes(norm(x)));
-      let c=c0;while(MESES.includes(norm(row[c])))C.incidencias.meses.push(norm(row[c++]));
-      C.incidencias.filas=listRows(inc,[hr,c0],c0-1,r=>({nombre:cleanName(at(inc,r,c0-1)),valores:C.incidencias.meses.map((_,i)=>num(at(inc,r,c0+i)))}));
-    }
-  }
+  if(inc)C.incidencias=leerIncidencias(inc);
   C.mes=mesDe(file)||C.incidencias.meses.at(-1)||C.mesesClientes.at(-1)||'';
   return C;
 }
@@ -550,7 +564,10 @@ function parseWorkbook(wb,file){
   lista.forEach(x=>{let m=x.mesCelda||x.mesHoja;if(x.mesHoja&&x.mesHoja!==m&&cuenta[m]>1)m=x.mesHoja;
     x.mes=m;x.anio=(x.mesHoja===m?x.anioHoja:null)||x.anioCelda;});
   const registros=regs(lista,file);
-  return registros.length?{kind:'sucursal',file,registros}:{kind:'desconocido',file};
+  if(registros.length)return{kind:'sucursal',file,registros};
+  const inc=sheet(wb,'INCIDENCIA');
+  if(inc){const R=leerIncidencias(inc);if(R.filas.length&&R.meses.length)return{kind:'incidencias',file,...R};}
+  return{kind:'desconocido',file};
 }
 </script>
 
@@ -608,27 +625,30 @@ $('#login').addEventListener('submit',async e=>{e.preventDefault();
 $('#salir').addEventListener('click',()=>db.auth.signOut());
 // Data is rebuilt from the loaded files in order, so removing one file drops only what it contributed; a later file for the same store and month wins.
 function derive(){
-  state.cons=null;state.consOwner=null;state.stores=new Map();state.owner=new Map();
+  state.cons=null;state.consOwner=null;state.inc=null;state.incOwner=null;state.stores=new Map();state.owner=new Map();
   for(const f of state.files){
     if(f.r.kind==='consolidado'){state.cons=f.r;state.consOwner=f.id;}
+    else if(f.r.kind==='incidencias'){state.inc=f.r;state.incOwner=f.id;}
     else if(f.r.kind==='sucursal')regs(f.r.registros,f.name).forEach(s=>{const k=s.key+'|'+s.mes;
       // Files saved before the currency check carry bolívares in farmacia/misceláneos; fix them on read the same way the parser does.
       if(s.total>0&&s.farmacia+s.misc>s.total*1.5){const t=s.farmacia+s.misc;s={...s,farmacia:s.total*s.farmacia/t,misc:s.total*s.misc/t,enOtraMoneda:true};}
       state.stores.set(k,s);state.owner.set(k,f.id);});
   }
+  if(!state.inc&&state.cons?.incidencias?.filas.length)state.inc=state.cons.incidencias;
 }
 function renderArchivos(){
   const n=state.files.length;
   $('#nArch').textContent=n;$('#archVacio').hidden=!!n;$('#archTbl').hidden=!n;$('#reset').hidden=!n||!canWrite;$('#drop').hidden=!canWrite;
   const rs=$('#reset');delete rs.dataset.armed;rs.textContent='Eliminar todos';
   $('#archivos').innerHTML='<thead><tr><th>Archivo</th><th>Tipo</th><th>Contenido</th><th><span class="sr">Acción</span></th></tr></thead><tbody>'+state.files.map(f=>{
-    const r=f.r,ok=r.kind==='consolidado'||r.kind==='sucursal';
-    const det=r.kind==='consolidado'?`${esc(cap(r.mes))} · solo se toman auditoría, merma e incidencias`+(state.consOwner!==f.id?' <b class="down">(reemplazado por otro consolidado)</b>':'')
+    const r=f.r,ok=['consolidado','sucursal','incidencias'].includes(r.kind);
+    const det=r.kind==='incidencias'?`Incidencias de ${r.filas.length} sucursales · ${r.meses.map(cap).join(', ')}`+(state.incOwner!==f.id?' <b class="down">(reemplazado por otra hoja de incidencias más reciente)</b>':'')
+      :r.kind==='consolidado'?`${esc(cap(r.mes))} · solo se toman auditoría, merma e incidencias`+(state.consOwner!==f.id?' <b class="down">(reemplazado por otro consolidado)</b>':'')
       :r.kind==='sucursal'?regs(r.registros,f.name).map(s=>`${esc(cap(s.nombre))} · ${esc(cap(s.mes))}`+
         (s.nombreCelda?` <b class="down">(la celda SUCURSAL solo dice "${esc(cap(s.nombreCelda))}": se tomó el nombre del archivo)</b>`:'')+
         (s.enOtraMoneda?' <b class="down">(farmacia y misceláneos venían en otra moneda: se repartieron sobre la venta en dólares)</b>':'')+(state.owner.get(s.key+'|'+s.mes)!==f.id?` <b class="down">(no se usa: este mes ya viene en ${esc(state.files.find(x=>x.id===state.owner.get(s.key+'|'+s.mes))?.name||'otro archivo')})</b>`:'')).join('<br>')
       :esc(r.msg||'No tiene el formato de Estadísticas de ventas');
-    return `<tr><td>${esc(f.name)}</td><td><span class="pill ${ok?'ok':'no'}">${r.kind==='consolidado'?'Consolidado':ok?'Sucursal':'No reconocido'}</span></td><td>${det}</td>`+
+    return `<tr><td>${esc(f.name)}</td><td><span class="pill ${ok?'ok':'no'}">${r.kind==='consolidado'?'Consolidado':r.kind==='incidencias'?'Incidencias':ok?'Sucursal':'No reconocido'}</span></td><td>${det}</td>`+
       `<td>${canWrite?`<button class="btn sm danger" data-del="${esc(f.id)}" aria-label="Eliminar ${esc(f.name)}">Eliminar</button>`:''}</td></tr>`;}).join('')+'</tbody>';
 }
 let tab='resumen';
@@ -658,8 +678,8 @@ function filas(){
   if(C){
     C.auditoria.forEach(a=>{const f=get(a.nombre);f.aud=a.aud;f.acc=a.acc;f.src.add('auditoría');});
     C.merma.forEach(m=>{const f=get(m.nombre);f.merma=m.monto;f.origen=m.origen;f.src.add('merma');});
-    C.incidencias.filas.forEach(i=>{const f=get(i.nombre);f.incSerie=i.valores;f.incAct=i.valores.at(-1);f.incAnt=i.valores.at(-2);f.src.add('incidencias');});
   }
+  state.inc?.filas.forEach(i=>{const f=get(i.nombre);f.incSerie=i.valores;f.incAct=i.valores.at(-1);f.incAnt=i.valores.at(-2);f.src.add('incidencias');});
   return [...M.values()];
 }
 
@@ -687,9 +707,9 @@ function render(){
   Chart.defaults.color=css('--muted');Chart.defaults.borderColor=css('--line');Chart.defaults.font.family=css('--f-body');
   const C=state.cons,mes=mesActual(),ant=prevMes(mes);
   $('#vSub').textContent=mes?`${cap(mes)} · comparado con ${cap(ant)}`:'Sin datos cargados';
-  const vacio=!state.stores.size&&!C;
+  const vacio=!state.stores.size&&!C&&!state.inc;
   $('#vacio').hidden=!vacio||tab==='archivos';
-  ['auditoria','merma','incidencias'].forEach(t=>$(`.menu [data-tab="${t}"]`).hidden=!C);$('#menuCons').hidden=!C;
+  ['auditoria','merma'].forEach(t=>$(`.menu [data-tab="${t}"]`).hidden=!C);$('.menu [data-tab="incidencias"]').hidden=!state.inc;$('#menuCons').hidden=!C;
   document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===state.filtro));
   document.querySelectorAll('#kpis,.sec,#noAnt,#sinPareja').forEach(e=>e.hidden=vacio);
   $('#viewEmpty').hidden=true;
@@ -714,8 +734,9 @@ function render(){
   const R=state.suc?todas.filter(x=>x.key===state.suc):F;
   ['cardRes','cardMetas','cardTabla'].forEach(id=>$('#'+id).hidden=!!state.suc);
   renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderTkDia(mes,ant);renderVentas(F,mes,ant);renderTicket(F,mes,ant);renderNoConf(F,mes,ant);renderFarm(F);
-  ['s-aud','s-merma','s-inc'].forEach(id=>$('#'+id).hidden=!C);
-  if(C){renderAud(F);renderMerma(F);renderInc(F);}
+  ['s-aud','s-merma'].forEach(id=>$('#'+id).hidden=!C);$('#s-inc').hidden=!state.inc;
+  if(C){renderAud(F);renderMerma(F);}
+  if(state.inc)renderInc(F);
   renderDetalle();
   const v=$('#v-'+tab);
   $('#viewEmpty').hidden=tab==='archivos'||[...v.querySelectorAll('.sec')].some(s=>!s.hidden);
@@ -725,6 +746,7 @@ const IC={
   money:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
+  alerta:'<path d="M12 3l9.5 17H2.5zM12 10v4M12 17v.5"/>',
   ticket:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>',
   pct:'<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M19 5L5 19"/>',
 };
@@ -746,6 +768,8 @@ function renderKpis(F,mes,ant){
     state.suc?kpi('Cumplimiento','target',cm.length?fP(real/meta):'—',cm.length?(ok?'<span class="delta up">Conforme</span>':'<span class="delta down">No conforme</span>')+(ca.length?` · ${esc(cap(ant))}: ${fP(sum(ca,'realAnt')/sum(ca,'metaAnt'))}`:''):`Sin archivo de ${esc(cap(mes))}`):
     kpi('Sucursales en meta','target',cm.length?`${ok} de ${cm.length}`:'—',cm.length?`${fP(ok/cm.length,0)} conformes`+(ca.length?` · ${esc(cap(ant))}: ${fP(okAnt/ca.length,0)}`:''):''),
     kpi('Clientes recibidos','users',fN(sum(F.filter(x=>x.cliAct!=null),'cliAct')),delta(sum(cp,'cliAct'),sum(cp,'cliAnt'),ant)),
+    ...(state.suc&&state.inc?[(()=>{const x=F.find(x=>x.incSerie),ms=state.inc.meses,m=ms.at(-1),a=ms.at(-2);
+      return kpi('Incidencias','alerta',x?fN(x.incAct):'—',x?(x.incAct<=LIMITE_INC?'<span class="delta up">Dentro del límite</span>':'<span class="delta down">Pasó el límite</span>')+` · ${esc(cap(m))}`+(a&&x.incAnt!=null?` · ${esc(cap(a))}: ${fN(x.incAnt)}`:''):'No aparece en la hoja de incidencias');})()]:[]),
     kpi('Ticket promedio','ticket',tk.length?f$(sum(tk,'real')/sum(tk,'fac')):'—',tp.length?delta(sum(tp,'real')/sum(tp,'fac'),sum(tp,'realAnt')/sum(tp,'facAnt'),ant):`Sin datos de ${esc(cap(ant))}`),
   ].join('');
 }
@@ -968,20 +992,34 @@ function renderMerma(F){
   $('#txMerma').innerHTML=`La merma auditada suma <b>${f$(tot)}</b> en ${m.length} sucursales. <b>${esc(cap(m[0].nombre))}</b> sola concentra el <b>${fP(m[0].merma/tot,0)}</b> del total, y las 3 primeras (${top3.map(x=>esc(cap(x.nombre))).join(', ')}) suman el ${fP(sum(top3,'merma')/tot,0)}.`;
 }
 
+// Highest number of incidencias a store may have in a month (set by the chain); above it the cell turns red.
+const LIMITE_INC=2;
 function renderInc(F){
-  const C=state.cons,ms=C.incidencias.meses,r=F.filter(x=>x.incSerie);
+  const I=state.inc,ms=I.meses,n=ms.length,L=LIMITE_INC,r=F.filter(x=>x.incSerie);
   $('#s-inc').hidden=!r.length;if(!r.length)return;
-  const tot=ms.map((_,i)=>r.reduce((s,x)=>s+(x.incSerie[i]||0),0));
-  chart('chInc',{type:'line',data:{labels:ms.map(cap),datasets:[{label:'Incidencias',data:tot,borderColor:css('--accent'),backgroundColor:css('--accent-bg'),fill:true,tension:.3,pointRadius:4,pointBackgroundColor:css('--accent')}]},
+  const m=ms[n-1],a=ms[n-2],tot=ms.map((_,i)=>r.reduce((s,x)=>s+(x.incSerie[i]||0),0));
+  const v=x=>x.incSerie[n-1]??0,w=x=>x.incSerie[n-2]??0,reinc=x=>n>1&&x.incSerie.every(v=>v!=null&&v>L);
+  const ok=r.filter(x=>v(x)<=L),okA=n>1?r.filter(x=>w(x)<=L):[],mej=r.filter(x=>v(x)<w(x)),peo=r.filter(x=>v(x)>w(x)).sort((p,q)=>(v(q)-w(q))-(v(p)-w(p))),re=r.filter(reinc);
+  $('#incLim').textContent=L;
+  $('#incKpis').innerHTML=[
+    kpi(`Incidencias de ${esc(cap(m))}`,'alerta',fN(tot[n-1]),n>1?delta(tot[n-1],tot[n-2],a,true):'',true),
+    kpi('Dentro del límite','target',`${ok.length} de ${r.length}`,`Máximo ${L} al mes`+(n>1?` · ${esc(cap(a))}: ${okA.length} de ${r.length}`:'')),
+    kpi('Mejoraron','users',n>1?`${mej.length} de ${r.length}`:'—',n>1?`Bajaron sus incidencias frente a ${esc(cap(a))}`:''),
+    kpi('Reincidentes','alerta',n>1?fN(re.length):'—',n>1?`Pasaron el límite en los ${n} meses`:'')].join('');
+  chart('chInc',{type:'bar',data:{labels:ms.map(cap),datasets:[{label:'Incidencias',data:tot,backgroundColor:tot.map((_,i)=>i===n-1?css('--bad'):css('--ref')),borderRadius:4}]},
     options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:css('--line')}},x:{grid:{display:false}}}}});
-  const n=ms.length,act=tot[n-1],ant=tot[n-2],max=Math.max(1,...r.flatMap(x=>x.incSerie.map(v=>v||0)));
-  const peor=[...r].sort((a,b)=>(b.incAct||0)-(a.incAct||0)).slice(0,3),cero=r.filter(x=>x.incAct===0);
-  $('#txInc').innerHTML=`En ${esc(cap(ms[n-1]))} hubo <b>${act}</b> incidencias${n>1?`, ${act<=ant?`${ant-act} menos`:`${act-ant} más`} que en ${esc(cap(ms[n-2]))}`:''}. `+
-    `Más incidencias: ${peor.map(x=>`<b>${esc(cap(x.nombre))}</b> (${x.incAct||0})`).join(', ')}.`+(cero.length?` En cero: ${cero.map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
-  const heat=v=>v==null?'<td class="h">—</td>':`<td class="h" style="background:color-mix(in srgb,var(--bad) ${Math.round(v/max*55)}%,transparent)">${v}</td>`;
-  $('#heat').innerHTML=`<thead><tr><th>Sucursal</th>${ms.map(m=>`<th>${esc(cap(m))}</th>`).join('')}</tr></thead><tbody>`+
-    [...r].sort((a,b)=>(b.incAct||0)-(a.incAct||0)).map(x=>`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</td>${x.incSerie.map(heat).join('')}</tr>`).join('')+
-    `<tr><td><b>Total</b></td>${tot.map(v=>`<td class="h"><b>${v}</b></td>`).join('')}</tr></tbody>`;
+  const max=Math.max(1,...r.flatMap(x=>x.incSerie.map(v=>v||0)));
+  const heat=v=>v==null?'<td class="h">—</td>':v<=L?`<td class="h" style="background:var(--surface-2);color:var(--muted)">${v}</td>`
+    :`<td class="h" style="background:color-mix(in srgb,var(--bad) ${Math.round(20+v/max*50)}%,transparent)">${v}</td>`;
+  const flecha=x=>{const d=v(x)-w(x);return n<2?'':`<td class="h ${d<0?'up':d>0?'down':''}">${d<0?'↓':d>0?'↑':'='} ${d?Math.abs(d):''}</td>`;};
+  $('#heat').innerHTML=`<thead><tr><th>Sucursal</th>${ms.map(m=>`<th>${esc(cap(m))}</th>`).join('')}${n>1?`<th>vs ${esc(cap(a))}</th>`:''}</tr></thead><tbody>`+
+    [...r].sort((p,q)=>v(q)-v(p)||w(q)-w(p)).map(x=>`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}${reinc(x)?'<span class="pill no" style="margin-left:6px">Reincidente</span>':''}</td>${x.incSerie.map(heat).join('')}${flecha(x)}</tr>`).join('')+
+    `<tr><td><b>Total</b></td>${tot.map(v=>`<td class="h"><b>${v}</b></td>`).join('')}${n>1?'<td></td>':''}</tr></tbody>`;
+  const lista=xs=>xs.map(x=>`${esc(cap(x.nombre))} (${n>1?`${w(x)} → `:''}${v(x)})`).join(', ');
+  $('#txInc').innerHTML=`En ${esc(cap(m))} hubo <b>${tot[n-1]}</b> incidencias`+(n>1?`, ${tot[n-1]<=tot[n-2]?`${tot[n-2]-tot[n-1]} menos`:`${tot[n-1]-tot[n-2]} más`} que en ${esc(cap(a))} (${tot[n-2]})`:'')+
+    `. <b>${ok.length} de ${r.length}</b> sucursales quedaron dentro del límite de ${L}`+(n>1?` (en ${esc(cap(a))} eran ${okA.length})`:'')+'.'+
+    (peo.length?`<br><br>Empeoraron: ${lista(peo)}.`:'')+
+    (re.length?`<br><br><b>${re.length} reincidentes</b>, sobre el límite los ${n} meses: ${lista([...re].sort((p,q)=>v(q)-v(p)))}.`:'');
 }
 
 function renderDetalle(){
