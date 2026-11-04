@@ -841,7 +841,8 @@ const lineaMin=v=>({id:'min',afterDatasetsDraw(c){const x=c.scales.x.getPixelFor
   ctx.save();ctx.strokeStyle=css('--ink');ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
   ctx.fillStyle=css('--ink');ctx.font=`600 11px ${css('--f-body')}`;ctx.textAlign='left';ctx.fillText('mín. '+f$(v),x+4,top+10);ctx.restore();}});
 function renderTicket(F){
-  const tk=F.filter(x=>x.fac>0).map(x=>({...x,t:x.real/x.fac}));
+  // Some files leave Facturas empty (Express Chimborazo); there the ticket uses clientes, which run close to facturas elsewhere.
+  const tk=F.filter(x=>x.real!=null&&(x.fac>0||x.cliAct>0)).map(x=>x.fac>0?{...x,t:x.real/x.fac}:{...x,t:x.real/x.cliAct,porCli:true});
   const G=GRUPOS_TICKET.map(g=>{const keys=new Set(g.suc.map(storeKey));return{...g,rows:tk.filter(x=>keys.has(x.key)).sort((a,b)=>b.t-a.t)};});
   const sinGrupo=tk.filter(x=>!G.some(g=>g.rows.includes(x)));
   $('#s-ticket').hidden=!tk.length;if(!tk.length)return;
@@ -850,11 +851,12 @@ function renderTicket(F){
     sizeBox('boxTk'+g.n,g.rows.length);
     const max=Math.max(g.min,...g.rows.map(x=>x.t))*1.1;
     hbar('chTk'+g.n,g.rows.map(x=>cap(x.nombre)),[{label:'Ticket promedio',data:g.rows.map(x=>x.t),backgroundColor:g.rows.map(x=>x.t>=g.min?css('--good'):css('--bad')),borderRadius:3}],
-      {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];return[`Ticket: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,`${fN(x.fac)} facturas`];}});
+      {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];return[`Ticket: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,x.porCli?`${fN(x.cliAct)} clientes (el archivo no trae facturas)`:`${fN(x.fac)} facturas`];}});
     charts['chTk'+g.n].options.scales.x.max=max;charts['chTk'+g.n].update();}
   $('#txTicket').innerHTML=G.filter(g=>g.rows.length).map(g=>{const no=g.rows.filter(x=>x.t<g.min);
     return `<b>Grupo ${g.n}</b>: ${g.rows.length-no.length} de ${g.rows.length} alcanzan ${f$(g.min)}.`+(no.length?` Por debajo: ${no.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'');}).join('<br>')+
-    (sinGrupo.length?`<br>Sin grupo asignado: ${sinGrupo.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'');
+    (sinGrupo.length?`<br>Sin grupo asignado: ${sinGrupo.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
+    (tk.some(x=>x.porCli)?`<br>Sin facturas en el archivo, calculado con clientes: ${tk.filter(x=>x.porCli).map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
 }
 
 // Stores under 100% of their goal, in the same order as the ventas chart and the general table (highest % first), one wide card each.
