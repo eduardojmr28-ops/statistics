@@ -252,6 +252,11 @@ select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--
           <div id="txSuc" hidden><h3>Comentario de la sucursal</h3><p class="an quote" id="txSucQ"></p></div>
         </div>
       </div>
+      <div class="card" id="cardTkDia" hidden>
+        <div class="card-h"><div><h2>Ticket promedio día a día</h2><p id="tkDiaSub"></p></div></div>
+        <div class="chart" style="height:260px"><canvas id="chTkDia" aria-label="Ticket promedio por día"></canvas></div>
+        <p class="an" id="txTkDia"></p>
+      </div>
       <div class="card">
         <div class="card-h"><div><h2>Comparativa por mes</h2><p id="mesSub"></p></div></div>
         <div class="chart" style="height:260px"><canvas id="chMes" aria-label="Venta, meta y clientes por mes"></canvas></div>
@@ -708,7 +713,7 @@ function render(){
   $('#selRes').value=state.suc;
   const R=state.suc?todas.filter(x=>x.key===state.suc):F;
   ['cardRes','cardMetas','cardTabla'].forEach(id=>$('#'+id).hidden=!!state.suc);
-  renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderVentas(F,mes,ant);renderTicket(F,mes,ant);renderNoConf(F,mes,ant);renderFarm(F);
+  renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderTkDia(mes,ant);renderVentas(F,mes,ant);renderTicket(F,mes,ant);renderNoConf(F,mes,ant);renderFarm(F);
   ['s-aud','s-merma','s-inc'].forEach(id=>$('#'+id).hidden=!C);
   if(C){renderAud(F);renderMerma(F);renderInc(F);}
   renderDetalle();
@@ -746,6 +751,27 @@ function renderKpis(F,mes,ant){
 }
 
 // Month-by-month totals from every loaded file: one store when chosen, else all stores in the filter.
+// Daily ticket for the store picked in Resumen, against the previous month and its group's minimum.
+function renderTkDia(mes,ant){
+  const s=state.suc&&state.stores.get(state.suc+'|'+mes),a=state.suc&&state.stores.get(state.suc+'|'+ant);
+  $('#cardTkDia').hidden=!s?.dias?.length;if($('#cardTkDia').hidden)return;
+  const porCli=!s.dias.some(d=>d.fac>0);
+  const tkd=x=>{const d=x.fac>0?x.fac:porCli?x.cli:0;return d>0&&x.venta?x.venta/d:null;};
+  const dias=Array.from({length:Math.max(...s.dias.map(d=>d.dia),...(a?.dias||[]).map(d=>d.dia))},(_,i)=>i+1);
+  const serie=x=>dias.map(n=>{const d=x?.dias?.find(d=>d.dia===n);return d?tkd(d):null;});
+  const act=serie(s),prev=a?serie(a):null,g=GRUPOS_TICKET.find(g=>g.suc.some(n=>storeKey(n)===s.key));
+  chart('chTkDia',{type:'line',data:{labels:dias,datasets:[
+    {label:cap(mes),data:act,borderColor:css('--accent'),backgroundColor:css('--accent'),pointRadius:3,borderWidth:2,spanGaps:true},
+    ...(prev?[{label:cap(ant),data:prev,borderColor:css('--ref'),backgroundColor:css('--ref'),pointRadius:2,borderWidth:2,spanGaps:true}]:[]),
+    ...(g?[{label:`Mínimo grupo ${g.n}`,data:dias.map(()=>g.min),borderColor:css('--ink'),borderDash:[5,4],pointRadius:0,borderWidth:1.5}]:[])]},
+    options:{maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',align:'start',labels:{boxWidth:12}},tooltip:{callbacks:{title:c=>'Día '+c[0].label,label:c=>`${c.dataset.label}: ${f$(c.parsed.y)}`}}},
+      scales:{y:{ticks:{callback:v=>'$'+loc(v,2)},grid:{color:css('--line')}},x:{grid:{display:false},title:{display:true,text:'Día del mes'}}}}});
+  const v=act.map((t,i)=>({t,dia:i+1})).filter(x=>x.t!=null),hi=v.reduce((m,x)=>x.t>m.t?x:m,v[0]),lo=v.reduce((m,x)=>x.t<m.t?x:m,v[0]);
+  $('#tkDiaSub').textContent=`${cap(s.nombre)} · venta del día ÷ ${porCli?'clientes del día (el archivo no trae facturas)':'facturas del día'}`;
+  $('#txTkDia').innerHTML=v.length?`Ticket más alto el día <b>${hi.dia}</b> (${f$(hi.t)}) y más bajo el día <b>${lo.dia}</b> (${f$(lo.t)}).`+
+    (g?` <b>${v.filter(x=>x.t>=g.min).length} de ${v.length}</b> días alcanzaron el mínimo de ${f$(g.min)} del grupo ${g.n}.`:''):'Sin datos diarios.';
+}
 function renderMeses(R,mes,ant,enFiltro){
   const by=new Map();
   for(const s of state.stores.values()){
