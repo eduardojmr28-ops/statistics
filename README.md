@@ -1,4 +1,4 @@
-﻿# Statistics
+# Statistics
 
 Tablero de indicadores de gestión de las sucursales. Lee las *Estadísticas de ventas* (FRMD-F-SC-018) en el navegador y las guarda en Supabase.
 

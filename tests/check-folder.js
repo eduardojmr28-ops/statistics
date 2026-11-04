@@ -1,4 +1,4 @@
-﻿// Runs every Excel under a folder through the page's parser and reports what the dashboard would see: node check-folder.js <folder>
+// Runs every Excel under a folder through the page's parser and reports what the dashboard would see: node check-folder.js <folder>
 const fs=require('fs'),path=require('path'),vm=require('vm'),XLSX=require('xlsx');
 const html=fs.readFileSync(__dirname+'/../web/index.html','utf8');
 const P=vm.runInNewContext(html.match(/<script id="parser">([\s\S]*?)<\/script>/)[1]+';({parseWorkbook,storeKey,SUCURSALES,isPoderoso})',{XLSX});

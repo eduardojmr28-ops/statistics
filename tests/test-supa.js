@@ -1,4 +1,4 @@
-﻿// Runs web/index.html headless against an in-memory fake of supabase-js: node test-supa.js <sucursal.xls>
+// Runs web/index.html headless against an in-memory fake of supabase-js: node test-supa.js <sucursal.xls>
 const fs = require('fs'), assert = require('assert'), { JSDOM } = require('jsdom'), XLSX = require('xlsx');
 const html = fs.readFileSync(__dirname + '/../web/index.html', 'utf8').replace(/<script src=[^>]*><\/script>/g, '');
 const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://statistics.example/' });

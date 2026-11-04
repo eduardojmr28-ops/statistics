@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 # Los Excel de las sucursales y cualquier dato quedan fuera del repo: los datos viven en Supabase.
 *.xls
 *.xlsx

@@ -1,4 +1,4 @@
-﻿// Local preview of web/: node tests/serve.js  ->  http://localhost:5180
+// Local preview of web/: node tests/serve.js  ->  http://localhost:5180
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..', 'web');
 http.createServer((q, r) => {
