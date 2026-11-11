@@ -8,7 +8,12 @@ Tablero de indicadores de gestión de las sucursales (ver `README.md`). Idioma d
 
 ## Método de trabajo (el mismo de Autelix)
 
-El dueño da la instrucción en español y Claude la ejecuta de principio a fin: lee el código, edita, prueba y cuenta el resultado. Solo pregunta cuando la decisión es realmente del dueño (publicar, cambiar algo que ya definió).
+El dueño da la instrucción en español y Claude la ejecuta **por su cuenta y de principio a fin**:
+
+- **Siempre divide el trabajo** en las partes que hagan falta y reparte cada una al modelo adecuado (tabla de abajo). No hace falta que el dueño lo pida.
+- **Analiza, verifica, valida y prueba** antes de dar algo por terminado: pruebas que pasan, revisión de otro agente y evidencia (salida de pruebas, captura de la vista previa). Si algo falla, se corrige y se vuelve a probar sin consultar.
+- **Solo vuelve al dueño cuando necesita que él valide algo**: una decisión que es suya (publicar, borrar datos, cambiar algo que ya definió, elegir entre opciones de diseño o reglas del negocio) o un resultado que solo él puede confirmar con los datos reales. No pide permiso para pasos intermedios ni avisa de cada avance.
+- Al terminar, un resumen corto: qué quedó hecho, cómo se comprobó y qué falta, si falta algo.
 
 ### Jerarquía de modelos
 Claude hace de **coordinador** en la conversación y reparte el trabajo a agentes (herramienta Agent, parámetro `model`) según la dificultad. No se gasta un modelo grande en una tarea chica.
@@ -32,7 +37,6 @@ Claude hace de **coordinador** en la conversación y reparte el trabajo a agente
 - Al dueño se le resume en español claro: qué quedó hecho, qué se verificó y qué falta.
 
 ### Cómo puede dirigir el dueño
-- **"Hazlo tú"**: se ejecuta con el nivel que corresponda.
 - **"Usa Opus/Sonnet/Fable para esto"**: se fuerza ese modelo.
 - **"Modo simple" / "modo completo"** (`/modo-simple`, `/modo-completo`): trabajo ligero u orquestación completa con agentes.
 - Para tareas largas e independientes (una rama o PR propia) se pueden abrir sesiones separadas.
