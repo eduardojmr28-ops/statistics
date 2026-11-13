@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Logo de Statistics">
+  <defs>
+    <linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C6EFE0"/><stop offset="1" stop-color="#8FD9BE"/></linearGradient>
+    <linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ED8B6"/><stop offset="1" stop-color="#45B98F"/></linearGradient>
+    <linearGradient id="lg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2FB585"/><stop offset="1" stop-color="#0F7A5C"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#04342C"/>
+  <rect x="13" y="36" width="15" height="15" rx="4" fill="url(#lg1)"/>
+  <rect x="23" y="27" width="15" height="24" rx="4" fill="url(#lg2)" opacity=".94"/>
+  <path d="M33 22a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4v17a12 12 0 0 1-12 12h-3z" fill="url(#lg3)"/>
+  <circle cx="44.5" cy="11.5" r="3" fill="#E1F5EE"/>
+</svg>

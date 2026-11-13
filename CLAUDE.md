@@ -4,6 +4,7 @@ Tablero de indicadores de gestión de las sucursales (ver `README.md`). Idioma d
 
 - `web/index.html`: el tablero completo (una sola página); `web/prueba/`: demostración con datos en el navegador.
 - `supabase/setup.sql`: tabla `archivos` y permisos. `netlify.toml`: Netlify publica `web/`.
+- Carga diaria: `web/carga/` (la app real en `/carga/`), `supabase/carga.sql` (tablas `carga_*`), `scripts/crear-usuarios-carga.js` (crea los 36 usuarios; `--autoprueba` sin red; `web/carga/vendor/` son las librerías propias) y las pruebas `npm run test:carga` y `npm run test:carga-rls`.
 - Pruebas: `npm test -- "<archivo.xls>"` y `npm run revisar -- "<carpeta de un mes>"`. Los Excel reales nunca entran al repositorio.
 
 ## Método de trabajo (el mismo de Autelix)

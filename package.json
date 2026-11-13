@@ -3,9 +3,13 @@
   "private": true,
   "scripts": {
     "test": "node tests/test-supa.js",
-    "revisar": "node tests/check-folder.js"
+    "revisar": "node tests/check-folder.js",
+    "test:carga": "node tests/test-carga.js",
+    "test:carga-rls": "node tests/test-carga-rls.js",
+    "usuarios:carga": "node scripts/crear-usuarios-carga.js"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "jsdom": "^24.1.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }

@@ -1,2 +1,29 @@
 [build]
   publish = "web"
+
+# Carga diaria (/carga/): la página y el service worker siempre se revalidan, y no se puede incrustar en otros sitios.
+[[headers]]
+  for = "/carga/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://qosmkkbcekbdzqfkhfgo.supabase.co wss://qosmkkbcekbdzqfkhfgo.supabase.co; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Strict-Transport-Security = "max-age=31536000"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/carga/"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/carga/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/carga/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
