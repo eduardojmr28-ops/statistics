@@ -1,0 +1,18 @@
+{
+  "name": "Statistics · Carga diaria",
+  "short_name": "Statistics",
+  "description": "Carga diaria de ventas por sucursal",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f2ef",
+  "theme_color": "#04342C",
+  "icons": [
+    { "src": "iconos/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

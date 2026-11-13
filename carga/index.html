@@ -1,0 +1,1712 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2f2ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f10" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="iconos/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Statistics">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="application-name" content="Statistics">
+<meta name="format-detection" content="telephone=no">
+<title>Statistics carga diaria</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell = fixed left menu + top bar + one view at a time; neutral greys with a single pharmacy-green accent (the hero KPI carries it) */
+:root{
+  --bg:#f2f2ef; --surface:#ffffff; --surface-2:#f7f7f4; --ink:#16181a; --muted:#686c71; --line:#e4e4df;
+  --accent:#0e7a63; --accent-ink:#ffffff; --accent-bg:#e2f1ec; --ref:#cfd2d6;
+  --good:#167a3e; --good-bg:#e3f3e8; --bad:#b4291b; --bad-bg:#fbe9e6; --warn:#a85a07; --warn-bg:#fcf0dc; --pod:#6a2fd0; --pod-bg:#eee7fc;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e0f10; --surface:#17181a; --surface-2:#1d1f21; --ink:#ececea; --muted:#9a9da2; --line:#2a2c2f;
+  --accent:#3cc6a3; --accent-ink:#06201a; --accent-bg:#13312a; --ref:#41454b;
+  --good:#4fd17f; --good-bg:#14301f; --bad:#f4776b; --bad-bg:#3a1b18; --warn:#f3b545; --warn-bg:#36290f; --pod:#ad8ff8; --pod-bg:#2a2142; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e0f10; --surface:#17181a; --surface-2:#1d1f21; --ink:#ececea; --muted:#9a9da2; --line:#2a2c2f;
+  --accent:#3cc6a3; --accent-ink:#06201a; --accent-bg:#13312a; --ref:#41454b;
+  --good:#4fd17f; --good-bg:#14301f; --bad:#f4776b; --bad-bg:#3a1b18; --warn:#f3b545; --warn-bg:#36290f; --pod:#ad8ff8; --pod-bg:#2a2142; color-scheme:dark;
+}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.5}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(1.5rem,2.6vw,1.95rem);font-weight:750;font-stretch:88%;letter-spacing:-.01em}
+h2{font-size:1.05rem;font-weight:700;font-stretch:92%}
+h3{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+td,.kpi b,.goals,.legend{font-variant-numeric:tabular-nums}
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px;padding:22px 14px;padding-left:max(14px,env(safe-area-inset-left,0px));background:var(--surface);border-right:1px solid var(--line);overflow-y:auto}
+.brand{display:flex;gap:10px;align-items:center;padding:0 8px}
+.logo{width:40px;height:40px;flex:none}
+.brand b{display:block;font-family:var(--f-display);font-size:1.05rem;font-weight:750;line-height:1.1}
+.brand small{color:var(--muted);font-size:.78rem}
+.menu{display:flex;flex-direction:column;gap:2px}
+.menu-h{margin:14px 10px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.menu button{font:inherit;font-weight:500;display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;color:var(--muted);padding:9px 10px;border-radius:10px;cursor:pointer}
+.menu button:hover{background:var(--surface-2);color:var(--ink)}
+.menu button[aria-current="page"]{background:var(--ink);color:var(--surface)}
+.menu button[aria-current="page"] .count{background:var(--surface);color:var(--ink)}
+.menu button:focus-visible,.btn:focus-visible,.seg button:focus-visible,select:focus-visible,.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{margin-left:auto;background:var(--surface-2);color:var(--muted);border-radius:999px;padding:0 8px;font-size:.75rem;font-weight:600}
+.side-foot{margin-top:auto;padding:12px;border-radius:12px;background:var(--surface-2);color:var(--muted);font-size:.78rem}
+
+.main{min-width:0;padding-block:22px 48px;padding-left:max(16px,min(32px,4vw));padding-right:max(16px,min(32px,4vw),env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between}
+.sub{color:var(--muted);margin:2px 0 0}
+.top-act{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 16px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.btn.sm{padding:5px 12px;font-size:.82rem}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.link{font:inherit;font-size:.84rem;font-weight:600;border:0;background:none;color:var(--accent);cursor:pointer;padding:2px 4px;border-radius:6px}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.seg button{font:inherit;font-size:.85rem;font-weight:500;border:0;background:none;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{margin:0;background:var(--surface);border:1px solid var(--line);padding:11px 14px;border-radius:12px;font-size:.88rem;color:var(--muted)}
+.note.warn{background:var(--warn-bg);border-color:transparent;color:var(--ink)}
+.empty{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:28px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
+.empty p{margin:4px 0 0;color:var(--muted)}
+
+.view{display:flex;flex-direction:column;gap:18px}
+.sec{display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.card-h p{margin:2px 0 0;color:var(--muted);font-size:.84rem}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:.9rem}
+.kpi-h i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:var(--ink)}
+.kpi b{font-family:var(--f-display);font-size:1.85rem;font-weight:750;font-stretch:88%;line-height:1.15;letter-spacing:-.01em}
+.kpi small{color:var(--muted);font-size:.82rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.kpi.hero{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kpi.hero small{color:inherit;opacity:.85}
+.kpi.hero .kpi-h i{border-color:color-mix(in srgb,var(--accent-ink) 35%,transparent);color:inherit}
+.kpi.hero .delta{background:color-mix(in srgb,var(--accent-ink) 18%,transparent);color:inherit}
+.delta{display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:999px;font-weight:700;font-size:.78rem}
+.delta.up{background:var(--good-bg);color:var(--good)} .delta.down{background:var(--bad-bg);color:var(--bad)}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+.nc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(360px,100%),1fr));gap:14px}
+.nc-t{display:flex;align-items:baseline;gap:8px;min-width:0}
+.nc-t span{color:var(--muted);font-family:var(--f-display);font-weight:700;font-size:.95rem}
+.nc-big{font-family:var(--f-display);font-size:1.6rem;font-weight:750;font-stretch:88%;color:var(--bad);line-height:1}
+.nc-dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:0}
+.nc-dl div{min-width:0}
+.nc-dl dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.nc-dl dd{margin:2px 0 0;font-weight:600;font-variant-numeric:tabular-nums}
+.nc-dl dd small{font-weight:400;color:var(--muted)}
+details.nc-com summary{cursor:pointer;font-weight:600;font-size:.86rem;color:var(--accent)}
+details.nc-com p{margin:8px 0 0}
+.res-bar{display:flex;align-items:center;gap:10px;font-weight:600}
+.res-bar select{min-width:min(280px,100%)}
+.bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.span2{grid-column:span 2}
+@media (max-width:1100px){.bento{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.span2{grid-column:span 2}}
+@media (max-width:700px){.bento{grid-template-columns:minmax(0,1fr)}.span2{grid-column:auto}}
+.chart{position:relative;width:100%}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
+.legend li{display:flex;align-items:center;gap:8px}
+.legend li b{margin-left:auto}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.goals{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:12px;max-height:340px;overflow-y:auto;font-size:.86rem}
+.goals li{display:flex;flex-direction:column;gap:5px}
+.goals .g-row{display:flex;justify-content:space-between;gap:8px}
+.goals .g-row span{color:var(--muted)}
+.track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.track i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.track i.ok{background:var(--good)}
+
+.body{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:1000px){.body{grid-template-columns:minmax(0,1fr)}}
+.read{display:flex;flex-direction:column;gap:10px;min-width:0}
+.read p{margin:0;max-width:65ch}
+.an{margin:0;background:var(--surface-2);padding:12px 14px;border-radius:12px;max-width:75ch}
+.formula{font-size:.86rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:10px}
+
+.tbl{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:.85rem;white-space:nowrap}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;background:var(--surface-2);position:sticky;top:0;z-index:1}
+thead tr.grp th{text-align:center;color:var(--ink);border-bottom:0}
+thead tr:nth-child(2) th{top:34px}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:2}
+th:first-child{background:var(--surface-2);z-index:3}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface-2)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:600}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.ok{background:var(--good-bg);color:var(--good)} .no{background:var(--bad-bg);color:var(--bad)}
+.tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:.66rem;font-weight:700;background:var(--pod-bg);color:var(--pod);letter-spacing:.04em}
+.bar{display:inline-flex;align-items:center;gap:6px}
+.bar i{display:inline-block;height:6px;border-radius:3px;background:var(--surface-2);width:60px;position:relative;overflow:hidden}
+.bar i u{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.heat td.h{min-width:42px;text-align:center}
+#incKpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){#incKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.an ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.heat tr.grp td{background:var(--surface-2);color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.mbar{height:7px;border-radius:3px;min-width:2px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface);font-size:.84rem;color:var(--muted)}
+.chip b{display:block;font-family:var(--f-display);font-size:1.2rem;color:var(--ink)}
+ol.list{margin:0;padding-left:20px;font-size:.88rem} ol.list li{margin:3px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+select{font:inherit;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:100%}
+.quote{white-space:pre-line;font-size:.88rem}
+
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:26px;background:var(--surface);cursor:pointer;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop strong{font-family:var(--f-display);font-size:1.05rem}
+.drop p{margin:2px 0 0;color:var(--muted);font-size:.86rem;max-width:70ch}
+#archivos th,#archivos td{text-align:left;white-space:normal;vertical-align:top}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:12px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+  .brand small,.menu-h,.side-foot{display:none}
+  .menu{flex-direction:row;overflow-x:auto;min-width:0}
+  .menu button{width:auto;white-space:nowrap}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* login + daily close (test build) */
+#loginBox{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.l-art{background:#04342C;color:#d8efe7;padding:48px;display:flex;flex-direction:column;justify-content:space-between;gap:30px}
+.l-art h1{color:#fff;font-size:clamp(1.8rem,3vw,2.6rem)}
+.l-art p{max-width:42ch;opacity:.85;margin:0}
+.l-roles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.l-roles div{border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;font-size:.84rem}
+.l-roles b{display:block;color:#fff;font-family:var(--f-display)}
+.l-form{display:grid;place-items:center;padding:32px 16px}
+.lbox{width:100%;max-width:380px;display:flex;flex-direction:column;gap:16px}
+.lbox label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.88rem}
+.lbox input,.form input,.form textarea,.lst input,.metas-g input,.inl input,select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+@media (max-width:820px){#loginBox{grid-template-columns:1fr}.l-art{padding:28px 18px}}
+body[data-rol="sucursal"] .menu [data-sup]{display:none!important}
+body:not([data-rol="sucursal"]) .menu [data-suc]{display:none!important}
+.side-foot{display:flex;flex-direction:column;gap:6px}.side-foot b{color:var(--ink)}
+.live{display:inline-flex;align-items:center;gap:7px;font-weight:600}.live i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.live.on i{background:var(--good);box-shadow:0 0 0 3px var(--good-bg)}
+.vstack{display:flex;flex-direction:column;gap:18px}
+.note.ok-n{background:var(--good-bg);border-color:transparent;color:var(--ink);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dias .dh{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center;font-weight:600}
+.dias button{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:6px 0;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.dias button small{font-size:.66rem;font-weight:500;color:var(--bad)}
+.dias button.ok{background:var(--good-bg);border-color:transparent;color:var(--good)}.dias button.ok small{color:var(--good)}
+.dias button.sel{outline:2px solid var(--ink);outline-offset:1px}
+.dias button:disabled{opacity:.35;cursor:default}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.form label{display:flex;flex-direction:column;gap:5px;font-size:.84rem;font-weight:600}
+.form label small,.lst legend small{font-weight:400;color:var(--muted)}
+.form .full{grid-column:1/-1}.form textarea{resize:vertical}
+.form input.err{border-color:var(--bad);background:var(--bad-bg)}
+@media (max-width:600px){.form{grid-template-columns:1fr}}
+.lst{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.lst legend{font-size:.84rem;font-weight:600;margin-bottom:6px;padding:0}
+@media (max-width:700px){.lst{grid-template-columns:1fr}}
+.err-t{color:var(--bad);font-size:.84rem;font-weight:600;margin:0}
+.prow{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}.prow b{font-variant-numeric:tabular-nums}
+.alerts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.alerts li{padding:10px 12px;border-radius:10px;font-size:.86rem;border-left:4px solid}
+.alerts li.a{background:var(--warn-bg);border-color:var(--warn)}.alerts li.g{background:var(--good-bg);border-color:var(--good)}.alerts b{display:block}
+.pill.warn-p{background:var(--warn-bg);color:var(--warn)}
+.inl{display:flex;gap:8px;align-items:center;font-weight:600;font-size:.85rem}
+.metas-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 14px}
+.metas-g label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600}
+.btn:disabled{opacity:.45;cursor:default}
+.toastp{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:11px 18px;border-radius:12px;font-weight:600;z-index:60;max-width:calc(100% - 32px)}
+
+/* móvil (≤860px): barra superior fija + menú de pestañas en su propia fila; el escritorio no cambia */
+@media (max-width:860px){
+  .side{position:sticky;top:0;z-index:40;height:auto;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"brand sesion" "menu menu";align-items:center;gap:0 10px;
+    padding:calc(8px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));overflow:visible}
+  .brand{grid-area:brand;padding:0;gap:8px}
+  .logo{width:32px;height:32px}
+  .brand b{font-size:1rem}
+  .side .side-foot{grid-area:sesion;display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:8px;min-width:0;padding:0;background:none;border-radius:0;font-size:.82rem}
+  .side-foot .u-id{display:none}
+  .side-foot .u-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:600}
+  .side-foot .live{flex:none;padding:8px 4px}
+  .side-foot .live i{width:10px;height:10px}
+  .side-foot .live-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .side-foot .btn.sm{flex:none;min-height:40px;padding:0 12px;font-size:.8rem;white-space:nowrap}
+  .menu{grid-area:menu;position:relative;flex-direction:row;gap:6px;margin:6px calc(-1 * max(12px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(12px,env(safe-area-inset-left,0px)));
+    padding:6px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));overflow-x:auto;overflow-y:hidden;min-width:0;
+    scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-top:1px solid var(--line)}
+  .menu::-webkit-scrollbar{display:none}
+  .menu .menu-h{display:none}
+  .menu button{flex:none;width:auto;min-height:44px;padding:0 14px;border-radius:999px;background:var(--surface-2);white-space:nowrap;font-size:.9rem}
+  .menu button[aria-current="page"]{background:var(--ink);color:var(--surface);font-weight:700}
+  .side{border-bottom:1px solid var(--line)}
+
+  .main{padding-top:14px;padding-bottom:calc(32px + env(safe-area-inset-bottom,0px))}
+  .toastp{bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  .card{padding:14px}
+  .top-act{width:100%}
+  .top-act .seg{width:100%}.top-act .seg button{flex:1;min-height:40px}
+
+  /* campos: ≥16 px (iOS no hace zoom), una columna, botón cómodo */
+  .lbox input,.form input,.form textarea,.lst input,.metas-g input,.inl input,select{font-size:16px;min-height:44px}
+  .form textarea{min-height:88px}
+  .form{grid-template-columns:minmax(0,1fr)}
+  .form .full .btn.primary{width:100%;justify-content:center;min-height:50px;font-size:1rem}
+  .dias button{min-height:44px;padding:8px 0}
+  .inl{flex-wrap:wrap}
+  .metas-g{grid-template-columns:minmax(0,1fr)}
+
+  /* tablas: se desplazan dentro de su tarjeta */
+  .tbl{max-width:100%;max-height:none;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+
+  /* Oportunidad de traslado: producto arriba y las dos listas apiladas debajo */
+  #prCruce table,#prCruce tbody,#prCruce tr,#prCruce td{display:block;width:100%}
+  #prCruce thead{display:none}
+  #prCruce .tbl{overflow:visible;border:0}
+  #prCruce tr{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--surface)}
+  #prCruce td,#prCruce td:first-child{position:static;background:none;text-align:left;border:0;padding:3px 0;white-space:normal}
+  #prCruce tr:hover td{background:none}
+  #prCruce td:nth-child(2)::before,#prCruce td:nth-child(3)::before{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-top:4px}
+  #prCruce td:nth-child(2)::before{content:"Se vende bien en"}
+  #prCruce td:nth-child(3)::before{content:"Se vende poco en"}
+}
+@media (max-width:820px){
+  #loginBox{min-height:100dvh;grid-template-rows:auto 1fr}
+  .l-art{padding:calc(18px + env(safe-area-inset-top,0px)) 18px 18px;gap:10px;justify-content:flex-start}
+  .l-art h1{font-size:1.25rem;line-height:1.2}
+  .l-art p,.l-roles{display:none}
+  .l-art>div:nth-child(2){gap:0!important}
+  .l-form{place-items:start center;padding:22px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+}
+</style>
+
+<div id="loginBox" hidden><section class="l-art"><div class="brand" style="padding:0"><b style="color:#fff;font-family:var(--f-display);font-size:1.2rem">Statistics</b></div>
+  <div style="display:flex;flex-direction:column;gap:14px"><h1>Cada sucursal carga su día. La dirección lo ve al instante.</h1><p>Cada sucursal tiene su propio usuario, que no cambia aunque cambie el gerente. Gerencia general, vicepresidencia y presidencia supervisan todas las sucursales y los canales (Call Center y Página Web) en tiempo real.</p></div>
+  <div class="l-roles"><div><b>Sucursal</b>Carga el cierre diario y cierra el mes</div><div><b>Gerencia general</b>Supervisa y carga metas</div><div><b>Vicepresidencia</b>Supervisa y carga metas</div><div><b>Presidencia</b>Supervisa y carga metas</div></div></section>
+<section class="l-form"><form class="lbox" id="fLogin" novalidate><div><h2 style="font-size:1.5rem">Iniciar sesión</h2><p class="sub">Entra con el usuario de tu sucursal o de tu cargo, o con tu correo si tienes uno registrado.</p></div>
+  <label>Usuario o correo<input id="lUser" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="usuario de tu sucursal o tu correo"></label>
+  <label>Clave<input id="lPass" type="password" autocomplete="current-password" placeholder="Clave"></label>
+  <p class="err-t" id="lErr" hidden>Usuario o clave incorrectos.</p>
+  <button class="btn primary" type="submit" style="justify-content:center;padding:11px">Entrar</button></form></section></div>
+<div class="app" hidden>
+<aside class="side">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="Logo de Statistics">
+      <defs>
+        <linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C6EFE0"/><stop offset="1" stop-color="#8FD9BE"/></linearGradient>
+        <linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ED8B6"/><stop offset="1" stop-color="#45B98F"/></linearGradient>
+        <linearGradient id="lg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2FB585"/><stop offset="1" stop-color="#0F7A5C"/></linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill="#04342C"/>
+      <rect x="13" y="36" width="15" height="15" rx="4" fill="url(#lg1)"/>
+      <rect x="23" y="27" width="15" height="24" rx="4" fill="url(#lg2)" opacity=".94"/>
+      <path d="M33 22a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4v17a12 12 0 0 1-12 12h-3z" fill="url(#lg3)"/>
+      <circle cx="44.5" cy="11.5" r="3" fill="#E1F5EE"/>
+    </svg>
+    <div><b>Statistics</b></div>
+  </div>
+  <nav class="menu" aria-label="Secciones">
+    <p class="menu-h" data-suc>Mi sucursal</p>
+    <button data-tab="carga" data-title="Cargar cierre del día" data-suc><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>Cargar cierre <span class="count" id="nPend" hidden></span></button>
+    <button data-tab="cierre" data-title="Cierre de mes" data-suc><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/></svg>Cierre de mes</button>
+    <p class="menu-h">Análisis</p>
+    <button data-tab="resumen" data-title="Resumen" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Resumen</button>
+    <button data-sup data-tab="ventas" data-title="Indicador de ventas"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/></svg>Ventas</button>
+    <button data-sup data-tab="noconf" data-title="No conformes"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.5"/></svg>No conformes <span class="count" id="nNc" hidden></span></button>
+    <button data-sup data-tab="clientes" data-title="Frecuencia de clientes"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Clientes</button>
+    <button data-tab="ticket" data-title="Ticket promedio por grupo"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>Ticket promedio</button>
+    <button data-sup data-tab="depto" data-title="Farmacia y misceláneos"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/></svg>Farmacia y misc.</button>
+    <button data-tab="sucursal" data-title="Detalle de sucursal"><svg class="ic" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9M4 9v11h16V9M3 9h18M9 20v-6h6v6"/></svg>Sucursal</button>
+    <button data-tab="incidencias" data-title="Incidencias de reporte de venta" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9.5 17H2.5zM12 10v4M12 17v.5"/></svg>Incidencias en venta</button>
+    <p class="menu-h" data-sup id="menuCons" hidden>Consolidado</p>
+    <button data-sup data-tab="auditoria" data-title="Indicador de auditoría" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/></svg>Auditoría</button>
+    <button data-sup data-tab="merma" data-title="Indicador de merma" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/></svg>Merma</button>
+    <p class="menu-h" data-sup>Control</p>
+    <button data-sup data-tab="control" data-title="Carga del día"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Carga del día <span class="count" id="nCtrl" hidden></span></button>
+    <button data-sup data-tab="meses" data-title="Cierres de mes y Excel"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/></svg>Cierres de mes</button>
+    <button data-sup data-tab="productos" data-title="5 más y 5 menos vendidos"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h11M4 12h7M4 17h11M17 5v14M14 16l3 3 3-3"/></svg>Productos</button>
+    <button data-sup data-tab="metas" data-title="Metas del mes"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Metas</button>
+  </nav>
+  <div class="side-foot" id="sesion"></div>
+</aside>
+
+<div class="main">
+  <header class="top">
+    <div><h1 id="vTitle">Resumen</h1><p class="sub" id="vSub">Sin datos cargados</p></div>
+    <div class="top-act">
+      <div class="seg" id="segF" role="group" aria-label="Tipo de sucursal">
+        <button aria-pressed="true" data-f="todas">Todas</button>
+        <button aria-pressed="false" data-f="estandar">Estándar</button>
+        <button aria-pressed="false" data-f="poderoso">Poderoso</button>
+      </div>
+      <select id="mesVer" aria-label="Mes a revisar" hidden></select>
+    </div>
+  </header>
+
+  <div class="notes">
+    <div class="empty" id="vacio">
+      <div><h2>Todavía no hay cierres</h2><p>Cuando una sucursal guarde su primer cierre, el tablero se llena solo.</p></div>
+    </div>
+    <p class="note warn" id="noAnt" hidden></p>
+    <p class="note warn" id="sinPareja" hidden></p>
+    <p class="note warn" id="modoNote" role="status" hidden></p>
+  </div>
+
+  <div class="view" id="v-resumen">
+    <div class="res-bar" id="resBar"><label for="selRes">Ver</label><select id="selRes"></select></div>
+    <div class="kpis" id="kpis"></div>
+    <section class="sec" id="s-tabla">
+      <div class="bento">
+        <div class="card span2" id="cardRes">
+          <div class="card-h"><div><h2>Venta contra meta</h2><p>Por sucursal, en dólares</p></div><button class="link" data-tab="ventas">Ver indicador →</button></div>
+          <div class="chart" style="height:280px"><canvas id="chRes" aria-label="Venta y meta por sucursal"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h2>Farmacia y misceláneos</h2><p>Venta total del mes</p></div></div>
+          <div class="chart" style="height:180px"><canvas id="chDona" aria-label="Reparto entre farmacia y misceláneos"></canvas></div>
+          <ul class="legend" id="donaLeg"></ul>
+        </div>
+        <div class="card" id="cardMetas">
+          <div class="card-h"><div><h2>Avance de metas</h2><p>% de la meta mensual alcanzado</p></div></div>
+          <ul class="goals" id="metas"></ul>
+        </div>
+        <div class="card span2">
+          <div class="card-h"><h2>Análisis del mes</h2></div>
+          <p class="an" id="txTabla"></p>
+          <div id="txSuc" hidden><h3>Comentario de la sucursal</h3><p class="an quote" id="txSucQ"></p></div>
+        </div>
+      </div>
+      <div class="card" id="cardTkDia" hidden>
+        <div class="card-h"><div><h2>Ticket promedio día a día</h2><p id="tkDiaSub"></p></div></div>
+        <div class="chart" style="height:260px"><canvas id="chTkDia" aria-label="Ticket promedio por día"></canvas></div>
+        <p class="an" id="txTkDia"></p>
+      </div>
+      <div class="card">
+        <div class="card-h"><div><h2>Comparativa por mes</h2><p id="mesSub"></p></div></div>
+        <div class="chart" style="height:260px"><canvas id="chMes" aria-label="Venta, meta y clientes por mes"></canvas></div>
+        <div class="tbl"><table id="tablaMes"></table></div>
+      </div>
+      <div class="card" id="cardTabla">
+        <div class="card-h"><div><h2>Tabla general por sucursal</h2><p>Ordenada por % de cumplimiento</p></div></div>
+        <div class="tbl"><table id="tabla"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-ventas" hidden>
+    <section class="sec body" id="s-ventas">
+      <div class="card"><div class="card-h"><h2>¿Qué sucursales llegaron a su meta?</h2></div><div class="chart" id="boxVentas"><canvas id="chVentas" aria-label="Cumplimiento de meta por sucursal"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">% cumplimiento = venta del mes ÷ meta establecida. Desde 100% la sucursal es <b>conforme</b>; por debajo, <b>no conforme</b>.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txVentas"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-noconf" hidden>
+    <section class="sec" id="s-noconf">
+      <div class="chips" id="ncChips"></div>
+      <p class="formula">Sucursales que no llegaron al 100% de su meta, de la más cercana a la más lejana. <b>Le faltó</b> = meta − venta. <b>Días en meta diaria</b> = días en que la venta del día alcanzó el promedio diario requerido.</p>
+      <div class="nc-grid" id="ncGrid"></div>
+    </section>
+  </div>
+
+  <div class="view" id="v-clientes" hidden>
+    <section class="sec body" id="cliBox">
+      <div class="card"><div class="card-h"><h2>Variación de clientes contra el mes anterior</h2></div><div class="chart" id="boxCli"><canvas id="chCli" aria-label="Variación de clientes por sucursal"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">Variación = (clientes del mes − clientes del mes anterior) ÷ clientes del mes anterior. Barras a la izquierda: la sucursal recibió menos gente.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txCli"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-ticket" hidden>
+    <section class="sec body" id="s-ticket">
+      <div class="card" id="tkGrupos"></div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="card">
+        <div class="card-h"><div><h2>Resumen</h2><p>Sucursales que alcanzan el mínimo de su grupo. Anillo exterior: mes actual; interior: mes anterior</p></div></div>
+        <div class="chart" style="height:200px"><canvas id="chTkDona" aria-label="Sucursales que alcanzan el ticket mínimo"></canvas></div>
+        <ul class="legend" id="tkLeg"></ul>
+      </div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">Ticket promedio = venta del mes ÷ facturas. Cada grupo tiene su mínimo (línea punteada): verde si la sucursal lo alcanza, rojo si queda por debajo. La barra gris es el mes anterior.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txTicket"></p>
+      </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-depto" hidden>
+    <section class="sec body" id="s-farm">
+      <div class="card"><div class="card-h"><h2>Venta por departamento</h2></div><div class="chart" id="boxFarm"><canvas id="chFarm" aria-label="Venta de farmacia y misceláneos por sucursal"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula">Los departamentos del sistema se agrupan en dos: farmacia y misceláneos. La barra completa es la venta del mes.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txFarm"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-sucursal" hidden>
+    <section class="sec" id="s-det">
+      <div class="card-h"><p class="sub">Elige la sucursal y el mes</p><select id="selSuc" aria-label="Sucursal"></select></div>
+      <div class="kpis" id="detKpis"></div>
+      <div class="body">
+        <div class="card"><div class="card-h"><h2>Venta diaria</h2></div><div class="chart" style="height:280px"><canvas id="chDia" aria-label="Venta diaria"></canvas></div></div>
+        <div class="card read"><h3>Análisis de la sucursal (del archivo)</h3><p class="an quote" id="txDet"></p></div>
+      </div>
+      <div class="two">
+        <div class="card"><h2>5 más vendidos</h2><ol class="list" id="topVend"></ol></div>
+        <div class="card"><h2>5 menos vendidos</h2><ol class="list" id="sinRot"></ol></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-auditoria" hidden>
+    <section class="sec body" id="s-aud">
+      <div class="card"><div class="card-h"><h2>Auditorías internas y acciones correctivas</h2></div><div class="chart" id="boxAud"><canvas id="chAud" aria-label="Porcentaje de auditoría y acción correctiva"></canvas></div></div>
+      <div class="card read">
+        <h3>Cómo leer</h3>
+        <p class="formula"><b>% Auditoría</b>: resultado de la auditoría interna de la sucursal. <b>% Acción C.</b>: avance de las acciones correctivas que salieron de esa auditoría. Una acción en 0% significa que no se ha corregido nada.</p>
+        <h3>Análisis</h3>
+        <p class="an" id="txAud"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-merma" hidden>
+    <section class="sec" id="s-merma">
+      <div class="chips" id="mermaChips"></div>
+      <div class="body">
+        <div class="card"><div class="card-h"><h2>Merma encontrada en auditoría</h2></div><div class="chart" id="boxMerma"><canvas id="chMerma" aria-label="Merma por sucursal"></canvas></div></div>
+        <div class="card read">
+          <h3>Cómo leer</h3>
+          <p class="formula">Merma = valor en dólares del producto perdido. El color indica su origen principal: faltante, vencido o dañado.</p>
+          <h3>Análisis</h3>
+          <p class="an" id="txMerma"></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-incidencias" hidden>
+    <section class="sec" id="s-inc">
+      <div class="kpis" id="incKpis"></div>
+      <div class="body">
+        <div class="card">
+          <div class="card-h"><div><h2>Total de la cadena</h2><p>Incidencias por mes</p></div></div>
+          <div class="chart" style="height:260px"><canvas id="chInc" aria-label="Incidencias por mes"></canvas></div>
+        </div>
+        <div class="card read">
+          <h3>Cómo leer</h3>
+          <p class="formula">Cada incidencia es un reporte de venta que llegó con errores o fuera de tiempo: menos es mejor. El límite aceptable es <b id="incLim"></b> al mes.</p>
+          <p class="formula">Celda <b>gris</b>: dentro del límite. Celda <b>roja</b>: pasó el límite (más intenso = más incidencias). La última columna compara con el mes anterior: <span class="up">↓ bajó</span>, <span class="down">↑ subió</span>.</p>
+          <p class="formula"><b>Reincidente</b>: pasó el límite en todos los meses cargados.</p>
+          <h3>Análisis</h3>
+          <div class="an" id="txInc"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div><h2>Incidencias por sucursal</h2><p>Gris: dentro del límite · Rojo: lo pasó · Ordenadas de más a menos en el último mes</p></div></div>
+        <div class="tbl"><table id="heat" class="heat"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="v-carga" hidden><div class="vstack" id="cargaBox"></div></div>
+  <div class="view" id="v-cierre" hidden><div class="vstack" id="cierreBox"></div></div>
+  <div class="view" id="v-control" hidden><div class="vstack" id="controlBox"></div></div>
+  <div class="view" id="v-meses" hidden><div class="vstack" id="mesesBox"></div></div>
+  <div class="view" id="v-metas" hidden><div class="vstack" id="metasBox"></div></div>
+  <div class="view" id="v-productos" hidden><div class="vstack" id="productosBox"></div></div>
+
+  <p class="note view-empty" id="viewEmpty" hidden>Los archivos cargados no traen datos para esta vista.</p>
+</div>
+</div>
+
+<!-- Libraries served from this site, not a CDN (versions and origin in vendor/LEEME.txt) -->
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/chart.umd.min.js"></script>
+<script src="vendor/supabase.min.js"></script>
+<script id="parser">
+const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const norm=v=>v==null?'':String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+const num=v=>typeof v==='number'&&isFinite(v)?v:(typeof v==='string'&&v.trim()!==''&&isFinite(+v.replace(',','.'))?+v.replace(',','.'):null);
+// A month cell can hold the word ("OCTUBRE") or an Excel date (01/10/2026 is stored as a serial number).
+const mesDe=s=>MESES.find(m=>norm(s).includes(m))||(typeof s==='number'&&s>20000?MESES[XLSX.SSF.parse_date_code(s).m-1]:'');
+// Store names are typed differently on each sheet (EXPRESS TIPURO / TIPURO XPRESS, POD HOSPITAL / P. HOSPITAL); this key makes them match.
+const STOP=new Set(['EXPRESS','XPRESS','EXPPRESS','AV','LA','LAS','LOS','EL']);
+// Pairs confirmed by the chain; names outside SUCURSALES show in the "sin pareja" note so new ones can be added here.
+const ALIAS={'PLAZA PIAR':'PIAR','PODEROSO JUNCAL':'PODEROSO','TIPURO HANADY':'TIPURO PALMA REAL'};
+// "TIPURO" alone (store code 07) is Palma Real; Tipuro Express files say "TIPURO EXPRESS" (code 14).
+const NOMBRES={'PRINCIPAL':'LAS BRISAS','AV BICENTENARIO':'AV BOLIVAR','AV LA PAZ':'PODEROSO AV LA PAZ','TIPURO':'TIPURO PALMA REAL'};
+const SUCURSALES=['AV BOLIVAR','GOBERNACION','EXPRESS CHIMBORAZO','JUNCAL','MERCADO','FLORESTA','PODEROSO','SAMANES','LA CRUZ','BOQUERON',
+  'POD HOSPITAL','PODEROSO TIPURO','SERVIMAS','HOSPITAL','EXPRESS TIPURO','GUARITOS','FURRIAL','LAS AVENIDAS','CORTIJOS','EXPRESS PIAR','PLAZA SIETE','LAS BRISAS',
+  'EJERCITO','PODEROSO AV LA PAZ','TIPURO PALMA REAL','COCUIZAS','PUNTA DE MATA','LA CASCADA','PARAMACONI','PARQUE MORICHAL',
+  // Sales channels measured like a store (codes 31 and 32, last so no other code moves). They belong to no ticket group.
+  'CALL CENTER','PAGINA WEB'];
+const esCanal=k=>k==='CALL CENTER'||k==='PAGINA WEB';   // by storeKey
+// Minimum average ticket each store should reach, by group (set by the chain). Names go through storeKey, so any spelling works.
+const GRUPOS_TICKET=[
+  {n:1,min:14,suc:['PODEROSO TIPURO','PODEROSO AV LA PAZ','SERVIMAS','LAS AVENIDAS','TIPURO PALMA REAL','PODEROSO','EXPRESS TIPURO','AV BOLIVAR','PLAZA SIETE','JUNCAL']},
+  {n:2,min:8.5,suc:['FLORESTA','PUNTA DE MATA','LA CASCADA','SAMANES','POD HOSPITAL','HOSPITAL','LA CRUZ','GUARITOS','FURRIAL','GOBERNACION']},
+  {n:3,min:7,suc:['LAS BRISAS','EJERCITO','EXPRESS CHIMBORAZO','BOQUERON','COCUIZAS','PARQUE MORICHAL','PARAMACONI','CORTIJOS','MERCADO','EXPRESS PIAR']}];
+function storeKey(name){
+  const k=norm(name).replace(/\(.*?\)/g,' ').replace(/[^A-Z0-9 ]/g,' ').split(' ').filter(Boolean)
+    .map(w=>w==='SIETE'?'7':w==='HANNADY'?'HANADY':w==='HOSP'?'HOSPITAL':(w==='POD'||w==='P')?'PODEROSO':w)
+    .filter(w=>!STOP.has(w)).join(' ');
+  return ALIAS[k]||k;
+}
+const cleanName=n=>{const c=norm(n).replace(/\(.*?\)/g,'').replace(/\s+/g,' ').trim();return NOMBRES[c]||c;};
+const isPoderoso=n=>storeKey(n).includes('PODEROSO');
+
+const grid=ws=>XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:true,raw:true});
+const at=(g,r,c)=>(g[r]||[])[c]??null;
+function findCell(g,pred){for(let r=0;r<g.length;r++){const row=g[r]||[];for(let c=0;c<row.length;c++)if(pred(norm(row[c])))return[r,c];}return null;}
+function nextVal(g,r,c){const row=g[r]||[];for(let i=c+1;i<row.length;i++)if(norm(row[i])!=='')return row[i];return null;}
+function sheet(wb,word){const n=wb.SheetNames.find(s=>norm(s).includes(word));return n?grid(wb.Sheets[n]):null;}
+// Reads a column list under a header: name at nameCol, stops at the first empty name.
+function listRows(g,h,nameCol,fn){const out=[];for(let r=h[0]+1;r<g.length;r++){const n=at(g,r,nameCol);if(!norm(n))break;const x=fn(r);if(x)out.push(x);}return out;}
+
+// Stores in rows, months in columns (header row = first row with 2+ month names); the list ends at the first row with no store name,
+// so the totals row below it is left out. Months with no number for any store (NOVIEMBRE still empty) are dropped.
+function leerIncidencias(g){
+  const R={meses:[],filas:[]},hr=g.findIndex(row=>(row||[]).filter(x=>MESES.includes(norm(x))).length>=2);
+  if(hr<0)return R;
+  const row=g[hr],c0=row.findIndex(x=>MESES.includes(norm(x)));
+  let c=c0;while(MESES.includes(norm(row[c])))R.meses.push(norm(row[c++]));
+  R.filas=listRows(g,[hr,c0],c0-1,r=>({nombre:cleanName(at(g,r,c0-1)),valores:R.meses.map((_,i)=>num(at(g,r,c0+i)))}));
+  let n=R.meses.length;while(n&&R.filas.every(f=>f.valores[n-1]==null))n--;
+  R.meses=R.meses.slice(0,n);R.filas.forEach(f=>f.valores=f.valores.slice(0,n));
+  return R;
+}
+function parseConsolidado(wb,file){
+  const C={kind:'consolidado',file,ventas:[],clientes:{},mesesClientes:[],causas:[],auditoria:[],merma:[],incidencias:{meses:[],filas:[]}};
+  const v=sheet(wb,'INDICADOR VENTAS');
+  if(v){
+    const h=findCell(v,s=>s==='META ESTABLECIDA');
+    if(h)C.ventas=listRows(v,h,h[1]-1,r=>{const meta=num(at(v,r,h[1]));return meta==null?null:{nombre:cleanName(at(v,r,h[1]-1)),meta,real:num(at(v,r,h[1]+1))??0};});
+    for(let r=0;r<v.length;r++){
+      const row=v[r]||[],c=row.findIndex(x=>norm(x).startsWith('TOTAL DE CLIENTE'));
+      if(c<0)continue;
+      let hr=r-1;while(hr>=0&&(num(at(v,hr,c+1))!=null||!norm(at(v,hr,c+1))))hr--;
+      if(hr<0)continue;
+      const mes=mesDe(row[c])||norm(row[c]),lista=[];
+      for(let j=c+1;norm(at(v,hr,j));j++){const val=num(at(v,r,j));if(val!=null)lista.push({nombre:cleanName(at(v,hr,j)),valor:val});}
+      C.clientes[mes]=lista;C.mesesClientes.push(mes);
+    }
+    const a=findCell(v,s=>s==='ANALISIS DE DATOS');
+    if(a)C.causas=listRows(v,a,a[1],r=>{const row=v[r];const n=row.slice(a[1]+1).map(num).find(x=>x!=null);return n==null?null:{causa:String(row[a[1]]).trim(),n};});
+  }
+  const au=sheet(wb,'AUDITORIA');
+  if(au){const h=findCell(au,s=>s==='% AUDITORIA');
+    if(h)C.auditoria=listRows(au,h,h[1]-1,r=>({nombre:cleanName(at(au,r,h[1]-1)),aud:num(at(au,r,h[1])),acc:num(at(au,r,h[1]+1))}));}
+  const m=sheet(wb,'MERMA');
+  if(m){const h=findCell(m,s=>s==='MERMA');
+    if(h)C.merma=listRows(m,h,h[1]-1,r=>{const monto=num(at(m,r,h[1]));return monto==null?null:{nombre:cleanName(at(m,r,h[1]-1)),monto,origen:String(at(m,r,h[1]+1)??'SIN ORIGEN').trim().toUpperCase()};});}
+  const inc=sheet(wb,'INCIDENCIAS');
+  if(inc)C.incidencias=leerIncidencias(inc);
+  C.mes=mesDe(file)||C.incidencias.meses.at(-1)||C.mesesClientes.at(-1)||'';
+  return C;
+}
+
+// Store records as the dashboard uses them. Sheets with no sales are skipped (a blank template sheet for next month would otherwise
+// overwrite the real month), and a SUCURSAL cell that holds only a generic word ("EXPRESS") takes the store name from the file name
+// ("SEPTIEMBRE EXPRESS CHIMBORAZO.xls"). Runs on new uploads and on files already saved, which is why it works on parsed records.
+const nombreDeArchivo=f=>cleanName(String(f).replace(/\.[^.]+$/,'').replace(/\d+/g,' ').split(/\s+/).filter(w=>!MESES.includes(norm(w))).join(' '));
+const regs=(registros,file)=>registros.filter(s=>s.total>0||(s.dias||[]).length).map(s=>{
+  if(!/\d{4}$/.test(s.mes||''))s={...s,mes:conAnio(s.mes,s.anio)};
+  if(storeKey(s.nombre))return s;
+  const nombre=nombreDeArchivo(file);return{...s,nombre,key:storeKey(nombre),nombreCelda:s.nombre};});
+
+// Files can hold a store's whole history (SEPTIEMBRE 25 … SEPTIEMBRE 26), so a period is "MES AAAA".
+// per() turns it into a month count that sorts and steps across years; periodo() turns it back.
+const per=p=>{const m=String(p||'').match(/^(\D+?)\s+(\d{4})$/);return m&&MESES.includes(m[1])?+m[2]*12+MESES.indexOf(m[1]):-1;};
+const periodo=n=>n<0?'':MESES[n%12]+' '+Math.floor(n/12);
+const anioDe=s=>{const m=String(s??'').match(/(?:^|\D)(\d{4}|\d{2})(?:\D|$)/);return m?(m[1].length===2?2000+ +m[1]:+m[1]):null;};
+// shortcut: with no year in the sheet name or the MES cell, take the latest month already closed (the current month counts as last year's)
+function conAnio(mes,anio){
+  if(!MESES.includes(mes))return mes||'';
+  if(!anio){const h=new Date();anio=h.getFullYear()-(MESES.indexOf(mes)>=h.getMonth()?1:0);}
+  return mes+' '+anio;
+}
+
+function parseSucursal(g,hoja){
+  const p=findCell(g,s=>s==='SUCURSAL:'),raw=norm(nextVal(g,p[0],p[1])),mm=raw.match(/^(\d+)[\s.\-]+(.*)$/);
+  const nombre=cleanName(mm?mm[2]:raw),val=l=>{const h=findCell(g,s=>s===l);return h?h:null;};
+  const below=l=>{const h=val(l);return h?num(at(g,h[0]+1,h[1])):null;};
+  const right=l=>{const h=val(l);return h?nextVal(g,h[0],h[1]):null;};
+  let farmacia=below('FARMACIA')??0,misc=below('MISCELANEOS')??0;const meta=num(right('META:'));
+  // Two layouts of the daily table: "VTA DIARIA … NRO DE FAC" and an older "MISCELANEO FARMACIA VENTA … FACTURAS".
+  const dias=[],dh=findCell(g,s=>s.startsWith('VTA DIARIA'))||findCell(g,s=>s==='VENTA');
+  if(dh){const H=(g[dh[0]]||[]).map(norm),iD=H.indexOf('DIA'),iF=H.indexOf('NRO DE FAC')>=0?H.indexOf('NRO DE FAC'):H.indexOf('FACTURAS'),iU=H.indexOf('UNIDADES DIARIA'),iC=H.indexOf('CLIENTE');
+    for(let r=dh[0]+1;r<g.length;r++){const d=num(at(g,r,iD));if(d==null)break;const v=num(at(g,r,dh[1]));if(v==null)continue;
+      dias.push({dia:d,venta:v,fac:num(at(g,r,iF))??0,unid:num(at(g,r,iU))??0,cli:num(at(g,r,iC))??0});}}
+  const lista=l=>{const h=val(l);if(!h)return[];const out=[];for(let r=h[0]+1;/^\d+[\s.\-]/.test(norm(at(g,r,h[1])));r++)out.push(String(at(g,r,h[1])).replace(/^\s*\d+[\s.\-]*/,'').trim());return out;};
+  const an=val('ANALISIS DE DATOS'),sum=k=>dias.reduce((s,d)=>s+d[k],0);
+  const total=below('CUMPLIMIENTO')??farmacia+misc,fac=sum('fac');
+  // Some files carry farmacia/misceláneos in bolívares while the total is in dollars: keep their split, applied to the dollar total.
+  const enOtraMoneda=total>0&&farmacia+misc>total*1.5;
+  if(enOtraMoneda){const t=farmacia+misc;farmacia=total*farmacia/t;misc=total*misc/t;}
+  // Month and year candidates from the MES cell and the sheet name; parseWorkbook picks between them.
+  const celdaMes=right('MES:');
+  return{nombre,key:storeKey(nombre),codigo:mm?mm[1]:'',mesCelda:mesDe(celdaMes),mesHoja:mesDe(norm(hoja)),anioHoja:anioDe(hoja),
+    anioCelda:typeof celdaMes==='number'&&celdaMes>20000?XLSX.SSF.parse_date_code(celdaMes).y:null,meta,promDia:num(right('PROMEDIO DIARIO:'))??(meta&&dias.length?meta/dias.length:null),
+    farmacia,misc,enOtraMoneda,total,dias,clientes:sum('cli'),facturas:fac,unidades:sum('unid'),ticket:fac?total/fac:null,
+    top:lista('PRODUCTOS MAS VENDIDOS'),sinRot:lista('PRODUCTOS SIN ROTACION EN TIENDA'),analisis:an?String(at(g,an[0]+1,an[1])??'').trim():''};
+}
+
+function parseWorkbook(wb,file){
+  if(wb.SheetNames.some(s=>norm(s).includes('INDICADOR VENTAS')))return parseConsolidado(wb,file);
+  const lista=wb.SheetNames.map(n=>[n,grid(wb.Sheets[n])]).filter(([,g])=>findCell(g,s=>s==='SUCURSAL:')).map(([n,g])=>parseSucursal(g,n));
+  // The MES cell decides the month (sheet names are often stale copies: a "JULIO" sheet holding September). When two sheets of one
+  // file claim the same month, the one whose sheet name says another month takes that name (sheet JULIO with "JUNIO" in MES).
+  const cuenta={};lista.forEach(x=>{const m=x.mesCelda||x.mesHoja;cuenta[m]=(cuenta[m]||0)+1;});
+  lista.forEach(x=>{let m=x.mesCelda||x.mesHoja;if(x.mesHoja&&x.mesHoja!==m&&cuenta[m]>1)m=x.mesHoja;
+    x.mes=m;x.anio=(x.mesHoja===m?x.anioHoja:null)||x.anioCelda;});
+  const registros=regs(lista,file);
+  if(registros.length)return{kind:'sucursal',file,registros};
+  const inc=sheet(wb,'INCIDENCIA');
+  if(inc){const R=leerIncidencias(inc);if(R.filas.length&&R.meses.length)return{kind:'incidencias',file,...R};}
+  return{kind:'desconocido',file};
+}
+</script>
+
+<script>
+const $=s=>document.querySelector(s);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const loc=(v,d)=>v.toLocaleString('es-VE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const f$=v=>v==null?'—':'$'+loc(v,2);
+const fN=v=>v==null?'—':loc(Math.round(v),0);
+const fP=(v,d=1)=>v==null||!isFinite(v)?'—':loc(v*100,d)+'%';
+const cap=s=>String(s||'').toLowerCase().replace(/(^|[\s(])\S/g,m=>m.toUpperCase());
+const sum=(a,k)=>a.reduce((s,x)=>s+(x[k]||0),0);
+const prevMes=m=>periodo(per(m)-1);
+const signo=(v,txt)=>`<span class="${v>=0?'up':'down'}">${v>=0?'+':''}${txt}</span>`;
+
+const state={cons:null,stores:new Map(),files:[],filtro:'todas',suc:''};
+let tab='resumen';
+function setTab(t){
+  if(!$('#v-'+t))t='resumen';
+  if(U.user){const suc=U.user.rol==='sucursal';if(suc&&!['carga','cierre','resumen','sucursal','ticket','incidencias'].includes(t))t='carga';if(!suc&&['carga','cierre'].includes(t))t='resumen';}
+  tab=t;
+  document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!=='v-'+t);
+  document.querySelectorAll('.menu [data-tab]').forEach(b=>b.dataset.tab===t?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+  const mn=document.querySelector('.menu'),ab=mn&&mn.querySelector('[aria-current="page"]');
+  if(ab&&mn.scrollWidth>mn.clientWidth+1)mn.scrollTo({left:ab.offsetLeft-(mn.clientWidth-ab.offsetWidth)/2,behavior:'smooth'}); // móvil: la pestaña activa queda a la vista
+  $('#vTitle').textContent=$(`.menu [data-tab="${t}"]`).dataset.title;
+  $('#segF').hidden=CUSTOM.includes(t)||t==='sucursal'||U.user?.rol==='sucursal';
+  render();
+}
+
+function mesActual(){
+  return [...state.stores.values()].map(s=>s.mes).sort((a,b)=>per(b)-per(a))[0]||state.cons?.mes||'';
+}
+
+// Sales, customers and departments come only from each store's Estadística de ventas (current and previous month).
+function filas(){
+  const M=new Map(),C=state.cons,mes=mesActual(),ant=prevMes(mes);
+  const get=n=>{const k=storeKey(n);if(!M.has(k))M.set(k,{key:k,nombre:cleanName(n),pod:isPoderoso(n),src:new Set()});return M.get(k);};
+  (U.user?.rol==='sucursal'?[tienda(U.user.tienda).n]:SUCURSALES).forEach(n=>{get(n).roster=true;});
+  for(const s of state.stores.values()){
+    if(s.mes===mes){const f=get(s.nombre);Object.assign(f,{meta:s.meta,real:s.total,cliAct:s.clientes,fac:s.facturas,farm:s.farmacia,misc:s.misc});f.src.add('estadística de ventas');}
+    else if(s.mes===ant)Object.assign(get(s.nombre),{realAnt:s.total,metaAnt:s.meta,cliAnt:s.clientes,facAnt:s.facturas});
+  }
+  if(C){
+    C.auditoria.forEach(a=>{const f=get(a.nombre);f.aud=a.aud;f.acc=a.acc;f.src.add('auditoría');});
+    C.merma.forEach(m=>{const f=get(m.nombre);f.merma=m.monto;f.origen=m.origen;f.src.add('merma');});
+  }
+  state.inc?.filas.forEach(i=>{const f=get(i.nombre);f.incSerie=i.valores;f.incAct=i.valores.at(-1);f.incAnt=i.valores.at(-2);f.src.add('incidencias');});
+  return [...M.values()];
+}
+
+const charts={};
+function chart(id,cfg){charts[id]?.destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+function sizeBox(id,n){document.getElementById(id).style.height=Math.max(160,n*26+50)+'px';}
+// Writes "$amount · %" inside each segment of a stacked horizontal bar (% of that bar's total); only the % if the segment is narrow.
+const etiquetasPct={id:'pct',afterDatasetsDraw(c){
+  const ctx=c.ctx;ctx.save();ctx.font=`600 11px ${css('--f-body')}`;ctx.textAlign='center';ctx.textBaseline='middle';
+  c.data.datasets.forEach((ds,di)=>c.getDatasetMeta(di).data.forEach((bar,i)=>{
+    const v=ds.data[i],tot=c.data.datasets.reduce((s,d)=>s+(d.data[i]||0),0),w=Math.abs(bar.x-bar.base);
+    if(!v||!tot)return;
+    let t=`$${loc(v,0)} · ${fP(v/tot,0)}`;if(ctx.measureText(t).width+10>w)t=fP(v/tot,0);if(ctx.measureText(t).width+6>w)return;
+    ctx.fillStyle=di===0?css('--accent-ink'):css('--ink');ctx.fillText(t,(bar.x+bar.base)/2,bar.y);}));
+  ctx.restore();}};
+function hbar(id,labels,datasets,{fmt=v=>v,stacked=false,legend=datasets.length>1,tip,plugins=[]}={}){
+  chart(id,{type:'bar',plugins,data:{labels,datasets},options:{indexAxis:'y',maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:legend,position:'top',align:'start',labels:{boxWidth:12}},tooltip:{callbacks:{label:tip||(c=>`${c.dataset.label?c.dataset.label+': ':''}${fmt(c.parsed.x)}`)}}},
+    scales:{x:{stacked,ticks:{callback:fmt},grid:{color:css('--line')}},y:{stacked,grid:{display:false},ticks:{autoSkip:false,color:css('--ink')}}}}});
+}
+
+function render(){renderStats();renderPropio();}
+function renderStats(){
+  if(!window.Chart){$('#kpis').innerHTML='<div class="note">No se pudo cargar la librería de gráficos. Revisa la conexión a internet y recarga la página.</div>';return;}
+  Chart.defaults.color=css('--muted');Chart.defaults.borderColor=css('--line');Chart.defaults.font.family=css('--f-body');
+  const C=state.cons,mes=mesActual(),ant=prevMes(mes);
+  $('#vSub').textContent=mes?`${cap(mes)} · comparado con ${cap(ant)}`:'Sin datos cargados';
+  const vacio=!state.stores.size&&!C&&!state.inc;
+  $('#vacio').hidden=!vacio||CUSTOM.includes(tab);
+  ['auditoria','merma'].forEach(t=>$(`.menu [data-tab="${t}"]`).hidden=!C);$('.menu [data-tab="incidencias"]').hidden=!state.inc;$('#menuCons').hidden=!C;
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===state.filtro));
+  document.querySelectorAll('#kpis,.sec,#noAnt,#sinPareja').forEach(e=>e.hidden=vacio);
+  $('#viewEmpty').hidden=true;
+  if(vacio)return;
+
+  const todas=filas();
+  const huerf=todas.filter(x=>!x.roster);
+  $('#sinPareja').hidden=!huerf.length;
+  $('#sinPareja').innerHTML=`Estos nombres no están en la lista de sucursales, así que aparecen en filas aparte: `+
+    huerf.map(x=>`<b>${esc(cap(x.nombre))}</b> (${[...x.src].join(', ')||'mes anterior'})`).join('; ')+'. Si alguno es una sucursal con otro nombre, hay que agregarlo a la lista.';
+  const conMes=todas.filter(x=>x.real!=null),sinAnt=conMes.filter(x=>x.realAnt==null);
+  $('#noAnt').hidden=!sinAnt.length;
+  $('#noAnt').innerHTML=`Para comparar con ${esc(cap(ant))} faltan los cierres de ${esc(cap(ant))} de: ${sinAnt.map(x=>esc(cap(x.nombre))).join(', ')}.`;
+  const F=todas.filter(x=>state.filtro==='todas'||(state.filtro==='poderoso')===x.pod);
+
+  // Resumen can narrow to one store (any store with a loaded file under the current filter); other views keep the whole filter.
+  const enFiltro=n=>state.filtro==='todas'||(state.filtro==='poderoso')===isPoderoso(n);
+  const opts=[...new Map([...state.stores.values()].filter(s=>enFiltro(s.nombre)).map(s=>[s.key,s.nombre])).entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+  if(state.suc&&!opts.some(([k])=>k===state.suc))state.suc='';
+  $('#selRes').innerHTML='<option value="">Todas las sucursales</option>'+opts.map(([k,n])=>`<option value="${esc(k)}">${esc(cap(n))}</option>`).join('');
+  $('#selRes').value=state.suc;
+  const R=state.suc?todas.filter(x=>x.key===state.suc):F;
+  ['cardRes','cardMetas','cardTabla'].forEach(id=>$('#'+id).hidden=!!state.suc);
+  renderKpis(R,mes,ant);renderResumen(R);renderTabla(F,mes,ant);renderMeses(R,mes,ant,enFiltro);renderTkDia(mes,ant);renderVentas(F,mes,ant);renderTicket(F,mes,ant);renderNoConf(F,mes,ant);renderFarm(F);
+  ['s-aud','s-merma'].forEach(id=>$('#'+id).hidden=!C);$('#s-inc').hidden=!state.inc;
+  if(C){renderAud(F);renderMerma(F);}
+  if(state.inc)renderInc(F);
+  renderDetalle();
+  const v=$('#v-'+tab);
+  $('#viewEmpty').hidden=CUSTOM.includes(tab)||[...v.querySelectorAll('.sec')].some(s=>!s.hidden);
+}
+
+const IC={
+  money:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
+  alerta:'<path d="M12 3l9.5 17H2.5zM12 10v4M12 17v.5"/>',
+  ticket:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>',
+  pct:'<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M19 5L5 19"/>',
+};
+const kpi=(t,ic,val,sub,hero)=>`<div class="kpi${hero?' hero':''}"><div class="kpi-h"><span>${t}</span>${ic?`<i><svg class="ic" viewBox="0 0 24 24">${IC[ic]}</svg></i>`:''}</div><b>${val}</b><small>${sub}</small></div>`;
+// Change vs the previous month as a pill; inv=true when going down is good.
+const delta=(a,b,ant,inv)=>{if(a==null||!b)return ant?`Sin datos de ${esc(cap(ant))}`:'';const v=(a-b)/b;
+  return `<span class="delta ${(inv?-v:v)>=0?'up':'down'}">${v>=0?'↑':'↓'} ${fP(Math.abs(v))}</span> vs ${esc(cap(ant))}`;};
+
+function renderKpis(F,mes,ant){
+  const cm=F.filter(x=>x.meta>0),meta=sum(cm,'meta'),real=sum(cm,'real'),ok=cm.filter(x=>x.real>=x.meta).length;
+  const vp=F.filter(x=>x.real!=null&&x.realAnt),cp=F.filter(x=>x.cliAct!=null&&x.cliAnt),tk=F.filter(x=>x.fac),tp=tk.filter(x=>x.facAnt);
+  const ca=cm.filter(x=>x.metaAnt>0&&x.realAnt!=null),okAnt=ca.filter(x=>x.realAnt>=x.metaAnt).length;
+  $('#kpis').innerHTML=[
+    kpi('Ventas del mes','money',f$(real),(cm.length?`${fP(real/meta)} de la meta · `:'')+delta(sum(vp,'real'),sum(vp,'realAnt'),ant),true),
+    // Chain-wide: total sales ÷ total goal of every store with a goal; compared in percentage points with the previous month's stores.
+    ...(state.suc?[]:[(()=>{const pa=F.filter(x=>x.metaAnt>0&&x.realAnt!=null),p=real/meta,q=sum(pa,'realAnt')/sum(pa,'metaAnt'),d=(p-q)*100;
+      return kpi('Cumplimiento general','pct',cm.length?fP(p):'—',cm.length?`Ventas ${f$(real)} de una meta total de ${f$(meta)}<br>`+(pa.length?`<span class="delta ${d>=0?'up':'down'}">${d>=0?'↑':'↓'} ${loc(Math.abs(d),1)} pts</span> vs ${esc(cap(ant))} (${fP(q)})`:`Sin datos de ${esc(cap(ant))}`)+
+        ` · ${cm.length} sucursales`:'');})()]),
+    state.suc?kpi('Cumplimiento','target',cm.length?fP(real/meta):'—',cm.length?(ok?'<span class="delta up">Conforme</span>':'<span class="delta down">No conforme</span>')+(ca.length?` · ${esc(cap(ant))}: ${fP(sum(ca,'realAnt')/sum(ca,'metaAnt'))}`:''):`Sin archivo de ${esc(cap(mes))}`):
+    kpi('Sucursales en meta','target',cm.length?`${ok} de ${cm.length}`:'—',cm.length?`${fP(ok/cm.length,0)} conformes`+(ca.length?` · ${esc(cap(ant))}: ${fP(okAnt/ca.length,0)}`:''):''),
+    kpi('Clientes recibidos','users',fN(sum(F.filter(x=>x.cliAct!=null),'cliAct')),delta(sum(cp,'cliAct'),sum(cp,'cliAnt'),ant)),
+    ...(state.suc&&state.inc?[(()=>{const x=F.find(x=>x.incSerie),ms=state.inc.meses,m=ms.at(-1),a=ms.at(-2),L=LIMITE_INC;
+      if(!x)return kpi('Incidencias en venta','alerta','—','No aparece en la hoja de incidencias');
+      const re=ms.length>1&&x.incSerie.every(v=>v!=null&&v>L),d=x.incAnt==null?null:x.incAct-x.incAnt;
+      const est=re?'<span class="delta down">Reincidente</span>':x.incAct<=L?'<span class="delta up">Dentro del límite</span>':'<span class="delta down">Fuera del límite</span>';
+      const cmp=d==null?'':` · <span class="${d<=0?'up':'down'}">${d<0?'↓':d>0?'↑':'='} ${d?Math.abs(d):''}</span> vs ${esc(cap(a))} (${fN(x.incAnt)})`;
+      const serie=ms.map((mm,i)=>`${esc(cap(mm).slice(0,3))} <span style="font-weight:700;color:var(--ink)">${fN(x.incSerie[i])}</span>`).join(' · ');
+      return kpi(`Incidencias en venta · ${esc(cap(m))}`,'alerta',fN(x.incAct),`<span style="flex-basis:100%">${est}${cmp}</span><span style="flex-basis:100%">${serie} · límite ${L}</span>`);})()]:[]),
+    kpi('Ticket promedio','ticket',tk.length?f$(sum(tk,'real')/sum(tk,'fac')):'—',tp.length?delta(sum(tp,'real')/sum(tp,'fac'),sum(tp,'realAnt')/sum(tp,'facAnt'),ant):`Sin datos de ${esc(cap(ant))}`),
+  ].join('');
+}
+
+// Month-by-month totals from every loaded file: one store when chosen, else all stores in the filter.
+// Daily ticket for the store picked in Resumen, against the previous month and its group's minimum.
+function renderTkDia(mes,ant){
+  const s=state.suc&&state.stores.get(state.suc+'|'+mes),a=state.suc&&state.stores.get(state.suc+'|'+ant);
+  $('#cardTkDia').hidden=!s?.dias?.length;if($('#cardTkDia').hidden)return;
+  const porCli=!s.dias.some(d=>d.fac>0);
+  const tkd=x=>{const d=x.fac>0?x.fac:porCli?x.cli:0;return d>0&&x.venta?x.venta/d:null;};
+  const dias=Array.from({length:Math.max(...s.dias.map(d=>d.dia),...(a?.dias||[]).map(d=>d.dia))},(_,i)=>i+1);
+  const serie=x=>dias.map(n=>{const d=x?.dias?.find(d=>d.dia===n);return d?tkd(d):null;});
+  const act=serie(s),prev=a?serie(a):null,g=GRUPOS_TICKET.find(g=>g.suc.some(n=>storeKey(n)===s.key));
+  chart('chTkDia',{type:'line',data:{labels:dias,datasets:[
+    {label:cap(mes),data:act,borderColor:css('--accent'),backgroundColor:css('--accent'),pointRadius:3,borderWidth:2,spanGaps:true},
+    ...(prev?[{label:cap(ant),data:prev,borderColor:css('--ref'),backgroundColor:css('--ref'),pointRadius:2,borderWidth:2,spanGaps:true}]:[]),
+    ...(g?[{label:`Mínimo grupo ${g.n}`,data:dias.map(()=>g.min),borderColor:css('--ink'),borderDash:[5,4],pointRadius:0,borderWidth:1.5}]:[])]},
+    options:{maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',align:'start',labels:{boxWidth:12}},tooltip:{callbacks:{title:c=>'Día '+c[0].label,label:c=>`${c.dataset.label}: ${f$(c.parsed.y)}`}}},
+      scales:{y:{ticks:{callback:v=>'$'+loc(v,2)},grid:{color:css('--line')}},x:{grid:{display:false},title:{display:true,text:'Día del mes'}}}}});
+  const v=act.map((t,i)=>({t,dia:i+1})).filter(x=>x.t!=null),hi=v.reduce((m,x)=>x.t>m.t?x:m,v[0]),lo=v.reduce((m,x)=>x.t<m.t?x:m,v[0]);
+  $('#tkDiaSub').textContent=`${cap(s.nombre)} · venta del día ÷ ${porCli?'clientes del día (el archivo no trae facturas)':'facturas del día'}`;
+  $('#txTkDia').innerHTML=v.length?`Ticket más alto el día <b>${hi.dia}</b> (${f$(hi.t)}) y más bajo el día <b>${lo.dia}</b> (${f$(lo.t)}).`+
+    (g?` <b>${v.filter(x=>x.t>=g.min).length} de ${v.length}</b> días alcanzaron el mínimo de ${f$(g.min)} del grupo ${g.n}.`:''):'Sin datos diarios.';
+}
+function renderMeses(R,mes,ant,enFiltro){
+  const by=new Map();
+  for(const s of state.stores.values()){
+    if(state.suc?s.key!==state.suc:!enFiltro(s.nombre))continue;
+    const m=by.get(s.mes)||{mes:s.mes,meta:0,real:0,cli:0,fac:0,farm:0,misc:0,n:0,suc:new Map()};
+    m.meta+=s.meta||0;m.real+=s.total||0;m.cli+=s.clientes||0;m.fac+=s.facturas||0;m.farm+=s.farmacia||0;m.misc+=s.misc||0;m.n++;m.suc.set(s.key,s);by.set(s.mes,m);
+  }
+  const S=[...by.values()].sort((a,b)=>per(a.mes)-per(b.mes));
+  $('#mesSub').textContent=state.suc?'Todos los meses cargados de esta sucursal':'Suma de las sucursales cargadas en cada mes';
+  chart('chMes',{data:{labels:S.map(m=>cap(m.mes)),datasets:[
+      {type:'bar',label:'Venta',data:S.map(m=>m.real),backgroundColor:css('--accent'),borderRadius:6,maxBarThickness:36,yAxisID:'y'},
+      {type:'bar',label:'Meta',data:S.map(m=>m.meta),backgroundColor:css('--ref'),borderRadius:6,maxBarThickness:36,yAxisID:'y'},
+      {type:'line',label:'Clientes',data:S.map(m=>m.cli),borderColor:css('--ink'),backgroundColor:css('--ink'),pointRadius:4,tension:.3,yAxisID:'y1'}]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',align:'end',labels:{boxWidth:8,usePointStyle:true}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.dataset.yAxisID==='y1'?fN(c.parsed.y):f$(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>'$'+loc(v/1000,0)+'k'},grid:{color:css('--line')},border:{display:false}},
+        y1:{position:'right',beginAtZero:true,grid:{display:false},ticks:{callback:v=>fN(v)},border:{display:false}}}}});
+  // Change vs the previous loaded month counts only stores present in both months, so uploading more stores doesn't read as growth.
+  const vr=(m,p,k)=>{if(!p)return'—';const c=[...m.suc.keys()].filter(x=>p.suc.has(x));
+    const a=c.reduce((s,x)=>s+(m.suc.get(x)[k]||0),0),b=c.reduce((s,x)=>s+(p.suc.get(x)[k]||0),0);
+    return b?signo((a-b)/b,fP((a-b)/b))+(!state.suc&&c.length<m.n?` <small class="sub">(${c.length} suc.)</small>`:''):'—';};
+  $('#tablaMes').innerHTML=`<thead><tr><th>Mes</th>${state.suc?'':'<th>Sucursales</th>'}<th>Meta</th><th>Venta</th><th>Cumpl.</th><th>Var. venta</th><th>Clientes</th><th>Var. clientes</th><th>Ticket</th><th>Farmacia</th><th>Misceláneos</th></tr></thead><tbody>`+
+    S.map((m,i)=>{const p=S[i-1];return `<tr><td>${esc(cap(m.mes))}</td>${state.suc?'':`<td>${m.n}</td>`}<td>${f$(m.meta)}</td><td>${f$(m.real)}</td>`+
+      `<td>${m.meta?`<span class="pill ${m.real>=m.meta?'ok':'no'}">${fP(m.real/m.meta)}</span>`:'—'}</td><td>${vr(m,p,'total')}</td>`+
+      `<td>${fN(m.cli)}</td><td>${vr(m,p,'clientes')}</td><td>${m.fac?f$(m.real/m.fac):'—'}</td><td>${f$(m.farm)}</td><td>${f$(m.misc)}</td></tr>`;}).join('')+'</tbody>';
+  const s=state.suc&&state.stores.get(state.suc+'|'+mes);
+  $('#txSuc').hidden=!s?.analisis;$('#txSucQ').textContent=s?.analisis||'';
+  if(!state.suc)return;
+  const x=R[0]||{},nom=esc(cap(x.nombre||'')),best=[...S].sort((a,b)=>(b.meta?b.real/b.meta:0)-(a.meta?a.real/a.meta:0))[0];
+  $('#txTabla').innerHTML=(x.real==null?`<b>${nom}</b> no tiene archivo de ${esc(cap(mes))}.`
+    :`<b>${nom}</b> vendió <b>${f$(x.real)}</b> en ${esc(cap(mes))}`+(x.meta?`, el <b>${fP(x.real/x.meta)}</b> de su meta de ${f$(x.meta)} (${x.real>=x.meta?'conforme':'no conforme'}).`:'.')+
+      (x.realAnt?` Frente a ${esc(cap(ant))} la venta ${x.real>=x.realAnt?'subió':'bajó'} <b>${f$(Math.abs(x.real-x.realAnt))}</b> (${fP((x.real-x.realAnt)/x.realAnt)})`+
+        (x.cliAnt?` y llegaron ${fN(Math.abs(x.cliAct-x.cliAnt))} clientes ${x.cliAct>=x.cliAnt?'más':'menos'}.`:'.'):` No hay archivo de ${esc(cap(ant))} para comparar.`))+
+    (S.length>1&&best?.meta?` De los ${S.length} meses cargados, el mejor cumplimiento fue ${esc(cap(best.mes))} (${fP(best.real/best.meta)}).`:'');
+}
+
+function renderResumen(F){
+  const cm=F.filter(x=>x.meta>0).sort((a,b)=>b.real/b.meta-a.real/a.meta);
+  chart('chRes',{type:'bar',data:{labels:cm.map(x=>cap(x.nombre)),datasets:[
+      {label:'Venta',data:cm.map(x=>x.real),backgroundColor:css('--accent'),borderRadius:6,maxBarThickness:22},
+      {label:'Meta',data:cm.map(x=>x.meta),backgroundColor:css('--ref'),borderRadius:6,maxBarThickness:22}]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',align:'end',labels:{boxWidth:8,usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${f$(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:60,font:{size:10}}},y:{ticks:{callback:v=>'$'+loc(v/1000,0)+'k'},grid:{color:css('--line')},border:{display:false}}}}});
+  const fa=sum(F,'farm'),mi=sum(F,'misc'),t=fa+mi;
+  chart('chDona',{type:'doughnut',data:{labels:['Farmacia','Misceláneos'],datasets:[{data:[fa,mi],backgroundColor:[css('--accent'),css('--ref')],borderWidth:0}]},
+    options:{maintainAspectRatio:false,animation:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${f$(c.parsed)}`}}}}});
+  $('#donaLeg').innerHTML=t?[['Farmacia',fa,'--accent'],['Misceláneos',mi,'--ref']].map(([n,v,c])=>`<li><span class="dot" style="background:var(${c})"></span>${n}<b>${f$(v)} · ${fP(v/t,0)}</b></li>`).join(''):'<li>Sin datos</li>';
+  $('#metas').innerHTML=cm.map(x=>{const p=x.real/x.meta;return `<li><div class="g-row"><strong>${esc(cap(x.nombre))}${x.pod?'<span class="tag">POD</span>':''}</strong><span class="${p>=1?'up':''}">${fP(p)}</span></div>`+
+    `<div class="track" role="img" aria-label="${fP(p)} de la meta"><i style="width:${Math.min(100,p*100)}%"></i></div></li>`;}).join('')||'<li>Sin metas cargadas</li>';
+}
+
+function renderTabla(F,mes,ant){
+  const hasFarm=F.some(x=>x.farm!=null),C=state.cons;
+  const rows=[...F].sort((a,b)=>(b.meta?b.real/b.meta:-1)-(a.meta?a.real/a.meta:-1));
+  const pc=x=>x.meta?x.real/x.meta:null;
+  const barra=v=>v==null?'—':`<span class="bar">${fP(v,0)}<i><u style="width:${Math.min(100,v*100)}%"></u></i></span>`;
+  const vr=(a,b)=>a!=null&&b?signo((a-b)/b,fP((a-b)/b)):'—';
+  let h=`<thead><tr class="grp"><th></th><th colspan="6">Ventas</th><th colspan="4">Clientes</th>${hasFarm?'<th colspan="2">Departamentos</th>':''}${C?'<th colspan="2">Auditoría</th><th colspan="2">Merma</th><th colspan="2">Incidencias</th>':''}</tr>
+  <tr><th>Sucursal</th><th>Meta</th><th>Venta</th><th>Cumpl.</th><th>Estado</th><th>Venta ${esc(cap(ant))}</th><th>Var.</th><th>${esc(cap(ant))}</th><th>${esc(cap(mes))}</th><th>Var.</th><th>Ticket</th>
+  ${hasFarm?'<th>Farmacia</th><th>Misceláneos</th>':''}${C?`<th>% Audit.</th><th>% Acción C.</th><th>Monto</th><th>Origen</th><th>${esc(cap(ant))}</th><th>${esc(cap(mes))}</th>`:''}</tr></thead><tbody>`;
+  for(const x of rows){
+    const p=pc(x);
+    h+=`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</td><td>${f$(x.meta)}</td><td>${f$(x.real)}</td><td>${fP(p)}</td>
+    <td>${p==null?'—':p>=1?'<span class="pill ok">Conforme</span>':'<span class="pill no">No conforme</span>'}</td>
+    <td>${f$(x.realAnt)}</td><td>${vr(x.real,x.realAnt)}</td><td>${fN(x.cliAnt)}</td><td>${fN(x.cliAct)}</td><td>${vr(x.cliAct,x.cliAnt)}</td><td>${x.fac?f$(x.real/x.fac):'—'}</td>
+    ${hasFarm?`<td>${f$(x.farm)}</td><td>${f$(x.misc)}</td>`:''}
+    ${C?`<td>${barra(x.aud)}</td><td>${barra(x.acc)}</td><td>${f$(x.merma)}</td><td>${esc(cap(x.origen))||'—'}</td><td>${fN(x.incAnt)}</td><td>${fN(x.incAct)}</td>`:''}</tr>`;
+  }
+  $('#tabla').innerHTML=h+'</tbody>';
+  const cm=F.filter(x=>x.meta>0),ok=cm.filter(x=>x.real>=x.meta).length;
+  const cp=F.filter(x=>x.cliAct!=null&&x.cliAnt!=null),d=sum(cp,'cliAct')-sum(cp,'cliAnt');
+  const vp=F.filter(x=>x.real!=null&&x.realAnt),vd=sum(vp,'real')-sum(vp,'realAnt');
+  $('#txTabla').innerHTML=cm.length?`De acuerdo a las metas establecidas en las ${cm.length} sucursales, el <b>${fP(ok/cm.length,0)}</b> cumplió la meta de ventas y el <b>${fP(1-ok/cm.length,0)}</b> no la cumplió.`+
+    (vp.length?` En las ${vp.length} sucursales con ambos meses, la venta ${vd>=0?'subió':'bajó'} <b>${f$(Math.abs(vd))}</b> (${fP(vd/sum(vp,'realAnt'))}) frente a ${esc(cap(ant))}.`:'')+
+    (cp.length?` Durante ${esc(cap(mes))} se recibieron <b>${fN(sum(cp,'cliAct'))}</b> clientes en ${cp.length} sucursales comparables; frente a ${esc(cap(ant))} ${d<0?`se dejaron de recibir <b>${fN(-d)}</b>`:`llegaron <b>${fN(d)}</b> clientes más`}.`:''):'Carga archivos para ver el resumen.';
+}
+
+function renderVentas(F,mes,ant){
+  const cm=F.filter(x=>x.meta>0).map(x=>({...x,p:x.real/x.meta})).sort((a,b)=>b.p-a.p);
+  $('#s-ventas').hidden=!cm.length;if(!cm.length)return;
+  sizeBox('boxVentas',cm.length);
+  hbar('chVentas',cm.map(x=>cap(x.nombre)),[{label:'% cumplimiento',data:cm.map(x=>x.p),backgroundColor:cm.map(x=>x.p>=1?css('--good'):css('--bad')),borderRadius:3}],
+    {fmt:v=>fP(v,0),tip:c=>{const x=cm[c.dataIndex];return[`Cumplimiento: ${fP(x.p)}`,`Venta: ${f$(x.real)}`,`Meta: ${f$(x.meta)}`];}});
+  const ok=cm.filter(x=>x.p>=1),top=cm[0],bot=cm.at(-1);
+  $('#txVentas').innerHTML=`<b>${ok.length} de ${cm.length}</b> sucursales fueron conformes. Venta total ${f$(sum(cm,'real'))} contra una meta de ${f$(sum(cm,'meta'))} (${fP(sum(cm,'real')/sum(cm,'meta'))}). `+
+    `Mejor cumplimiento: <b>${esc(cap(top.nombre))}</b> (${fP(top.p)}). Más lejos de la meta: <b>${esc(cap(bot.nombre))}</b> (${fP(bot.p)}, faltaron ${f$(bot.meta-bot.real)}).`;
+
+  const cl=F.filter(x=>x.cliAct!=null&&x.cliAnt).map(x=>({...x,v:(x.cliAct-x.cliAnt)/x.cliAnt})).sort((a,b)=>a.v-b.v);
+  $('#cliBox').hidden=!cl.length;if(!cl.length)return;
+  sizeBox('boxCli',cl.length);
+  hbar('chCli',cl.map(x=>cap(x.nombre)),[{data:cl.map(x=>x.v),backgroundColor:cl.map(x=>x.v<0?css('--bad'):css('--good')),borderRadius:3}],
+    {fmt:v=>fP(v,0),tip:c=>{const x=cl[c.dataIndex];return[`Variación: ${fP(x.v)}`,`${cap(ant)}: ${fN(x.cliAnt)}`,`${cap(mes)}: ${fN(x.cliAct)}`];}});
+  const baj=cl.filter(x=>x.v<0),a=sum(cl,'cliAct'),b=sum(cl,'cliAnt');
+  $('#txCli').innerHTML=`En ${esc(cap(mes))} llegaron <b>${fN(a)}</b> clientes a estas ${cl.length} sucursales, ${signo(a-b,fN(a-b))} frente a ${esc(cap(ant))} (${fP((a-b)/b)}). `+
+    `<b>${baj.length}</b> sucursales recibieron menos clientes.`+(baj.length?` La mayor caída fue en <b>${esc(cap(cl[0].nombre))}</b> (${fP(cl[0].v)}).`:'');
+}
+
+// Dashed vertical line at the group's minimum ticket.
+const lineaMin=v=>({id:'min',afterDatasetsDraw(c){const x=c.scales.x.getPixelForValue(v),{top,bottom}=c.chartArea,ctx=c.ctx;
+  ctx.save();ctx.strokeStyle=css('--ink');ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
+  ctx.fillStyle=css('--ink');ctx.font=`600 11px ${css('--f-body')}`;ctx.textAlign='left';ctx.fillText('mín. '+f$(v),x+4,top+10);ctx.restore();}});
+function renderTicket(F,mes,ant){
+  // Some files leave Facturas empty (Express Chimborazo); there the ticket uses clientes, which run close to facturas elsewhere.
+  const tk=F.filter(x=>x.real!=null&&(x.fac>0||x.cliAct>0)).map(x=>({...(x.fac>0?{t:x.real/x.fac}:{t:x.real/x.cliAct,porCli:true}),...x,
+    tA:x.realAnt==null?null:x.facAnt>0?x.realAnt/x.facAnt:x.cliAnt>0?x.realAnt/x.cliAnt:null}));
+  const G=GRUPOS_TICKET.map(g=>{const keys=new Set(g.suc.map(storeKey));return{...g,rows:tk.filter(x=>keys.has(x.key)).sort((a,b)=>b.t-a.t)};});
+  const canales=tk.filter(x=>esCanal(x.key)).sort((a,b)=>b.t-a.t),sinGrupo=tk.filter(x=>!esCanal(x.key)&&!G.some(g=>g.rows.includes(x)));
+  $('#s-ticket').hidden=!tk.length;if(!tk.length)return;
+  $('#tkGrupos').innerHTML=G.filter(g=>g.rows.length).map(g=>`<div class="card-h"><h2>Grupo ${g.n} · mínimo ${f$(g.min)}</h2></div><div class="chart" id="boxTk${g.n}"><canvas id="chTk${g.n}" aria-label="Ticket promedio del grupo ${g.n}"></canvas></div>`).join('')+
+    (canales.length?`<div class="card-h"><h2>Canales · sin mínimo</h2></div><div class="chart" id="boxTkC"><canvas id="chTkC" aria-label="Ticket promedio de los canales"></canvas></div>`:'');
+  if(canales.length){sizeBox('boxTkC',canales.length*1.7);
+    hbar('chTkC',canales.map(x=>cap(x.nombre)),[{label:cap(mes),data:canales.map(x=>x.t),backgroundColor:css('--accent'),borderRadius:3},{label:cap(ant),data:canales.map(x=>x.tA),backgroundColor:css('--ref'),borderRadius:3}],
+      {fmt:v=>'$'+loc(v,2),tip:c=>{const x=canales[c.dataIndex];return c.datasetIndex?[`${cap(ant)}: ${f$(x.tA)}`]:[`${cap(mes)}: ${f$(x.t)}`,x.porCli?`${fN(x.cliAct)} clientes`:`${fN(x.fac)} facturas`];}});}
+  for(const g of G){if(!g.rows.length)continue;
+    sizeBox('boxTk'+g.n,g.rows.length*1.7);
+    const max=Math.max(g.min,...g.rows.map(x=>Math.max(x.t,x.tA||0)))*1.1;
+    hbar('chTk'+g.n,g.rows.map(x=>cap(x.nombre)),[{label:cap(mes),data:g.rows.map(x=>x.t),backgroundColor:g.rows.map(x=>x.t>=g.min?css('--good'):css('--bad')),borderRadius:3},
+      {label:cap(ant),data:g.rows.map(x=>x.tA),backgroundColor:css('--ref'),borderRadius:3}],
+      {fmt:v=>'$'+loc(v,2),plugins:[lineaMin(g.min)],tip:c=>{const x=g.rows[c.dataIndex];if(c.datasetIndex)return[`${cap(ant)}: ${f$(x.tA)}`,`Cambio a ${cap(mes)}: ${x.t>=x.tA?'+':'−'}${f$(Math.abs(x.t-x.tA))} (${fP((x.t-x.tA)/x.tA)})`];return[`${cap(mes)}: ${f$(x.t)}`,`Mínimo del grupo: ${f$(g.min)}`,x.porCli?`${fN(x.cliAct)} clientes (el archivo no trae facturas)`:`${fN(x.fac)} facturas`];}});
+    const o=charts['chTk'+g.n].options;o.scales.x.suggestedMax=max;o.plugins.legend.labels.generateLabels=()=>[[cap(mes),'--good'],[cap(ant),'--ref']].map(([text,v])=>({text,fillStyle:css(v),strokeStyle:css(v),fontColor:css('--muted')}));charts['chTk'+g.n].update();}
+  const con=G.filter(g=>g.rows.length),ok=con.reduce((s,g)=>s+g.rows.filter(x=>x.t>=g.min).length,0),cA=con.flatMap(g=>g.rows.filter(x=>x.tA!=null).map(x=>x.tA>=g.min)),okA=cA.filter(Boolean).length,tot=con.reduce((s,g)=>s+g.rows.length,0);
+  const centro={id:'centro',afterDraw(c){const {left,right,top,bottom}=c.chartArea,ctx=c.ctx,x=(left+right)/2,y=(top+bottom)/2;ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=css('--ink');ctx.font=`750 1.6rem ${css('--f-display')}`;ctx.fillText(tot?fP(ok/tot,0):'—',x,y-8);
+    ctx.fillStyle=css('--muted');ctx.font=`500 12px ${css('--f-body')}`;ctx.fillText(`${ok} de ${tot}`,x,y+14);if(cA.length)ctx.fillText(`${cap(ant).split(' ')[0].slice(0,3)}: ${fP(okA/cA.length,0)}`,x,y+30);ctx.restore();}};
+  chart('chTkDona',{type:'doughnut',plugins:[centro],data:{labels:['Alcanzan el mínimo','Por debajo'],datasets:[{label:cap(mes),data:[ok,tot-ok],backgroundColor:[css('--good'),css('--bad')],borderWidth:0},
+    ...(cA.length?[{label:cap(ant),data:[okA,cA.length-okA],backgroundColor:[css('--good')+'70',css('--bad')+'70'],borderWidth:0}]:[])]},
+    options:{maintainAspectRatio:false,animation:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label} · ${c.label}: ${c.parsed} sucursales`}}}}});
+  $('#tkLeg').innerHTML=con.map(g=>{const k=g.rows.filter(x=>x.t>=g.min).length;
+    return `<li><span class="dot" style="background:var(${k===g.rows.length?'--good':k?'--warn':'--bad'})"></span>Grupo ${g.n} · ${f$(g.min)}<b>${k} de ${g.rows.length} · ${fP(k/g.rows.length,0)}</b></li>`;}).join('')+
+    (cA.length?`<li><span class="dot" style="background:color-mix(in srgb,var(--good) 45%,transparent)"></span>Anillo interior: ${esc(cap(ant))}<b>${cA.filter(Boolean).length} de ${cA.length} · ${fP(cA.filter(Boolean).length/cA.length,0)}</b></li>`:'');
+  $('#txTicket').innerHTML=G.filter(g=>g.rows.length).map(g=>{const no=g.rows.filter(x=>x.t<g.min);
+    return `<b>Grupo ${g.n}</b>: ${g.rows.length-no.length} de ${g.rows.length} alcanzan ${f$(g.min)}.`+(no.length?` Por debajo: ${no.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
+      (()=>{const c=g.rows.filter(x=>x.tA),up=c.filter(x=>x.t>x.tA).length;return c.length?` Frente a ${esc(cap(ant))} el ticket subió en ${up} y bajó en ${c.length-up}.`:'';})();}).join('<br>')+
+    (()=>{const c=tk.filter(x=>x.tA).sort((a,b)=>(b.t-b.tA)-(a.t-a.tA));return c.length>1?`<br>Mayor subida: <b>${esc(cap(c[0].nombre))}</b> (${f$(c[0].tA)} → ${f$(c[0].t)}). Mayor caída: <b>${esc(cap(c.at(-1).nombre))}</b> (${f$(c.at(-1).tA)} → ${f$(c.at(-1).t)}).`:'';})()+
+    (canales.length?`<br><b>Canales</b> (sin mínimo de grupo): ${canales.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
+    (sinGrupo.length?`<br>Sin grupo asignado: ${sinGrupo.map(x=>`${esc(cap(x.nombre))} (${f$(x.t)})`).join(', ')}.`:'')+
+    (tk.some(x=>x.porCli)?`<br>Sin facturas en el archivo, calculado con clientes: ${tk.filter(x=>x.porCli).map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
+}
+
+// Stores under 100% of their goal, in the same order as the ventas chart and the general table (highest % first), one wide card each.
+function renderNoConf(F,mes,ant){
+  const cm=F.filter(x=>x.meta>0),nc=cm.filter(x=>x.real<x.meta).sort((a,b)=>b.real/b.meta-a.real/a.meta);
+  $('#nNc').hidden=!nc.length;$('#nNc').textContent=nc.length;
+  $('#s-noconf').hidden=!cm.length;if(!cm.length)return;
+  const chip=(t,v)=>`<div class="chip"><span>${t}</span><b>${v}</b></div>`;
+  $('#ncChips').innerHTML=chip('No conformes',`${nc.length} de ${cm.length}`)+chip('Les faltó en total',f$(nc.reduce((s,x)=>s+x.meta-x.real,0)))+
+    (nc.length?chip('Cumplimiento promedio',fP(sum(nc,'real')/sum(nc,'meta'))):'');
+  const vs=(a,b)=>a!=null&&b?signo((a-b)/b,fP((a-b)/b))+` <small>vs ${esc(cap(ant))}</small>`:`<small>sin ${esc(cap(ant))}</small>`;
+  $('#ncGrid').innerHTML=nc.length?nc.map((x,i)=>{
+    const s=state.stores.get(x.key+'|'+mes)||{},d=s.dias||[],p=x.real/x.meta,pd=s.promDia,t=(x.farm||0)+(x.misc||0);
+    const enMeta=pd?d.filter(v=>v.venta>=pd).length:null;
+    return `<article class="card"><div class="card-h"><div class="nc-t"><span>#${i+1}</span><h2>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</h2></div><span class="nc-big">${fP(p)}</span></div>`+
+      `<div class="track" role="img" aria-label="${fP(p)} de la meta"><i style="width:${Math.min(100,p*100)}%"></i></div><dl class="nc-dl">`+
+      `<div><dt>Meta</dt><dd>${f$(x.meta)}</dd></div><div><dt>Venta</dt><dd>${f$(x.real)}</dd></div>`+
+      `<div><dt>Le faltó</dt><dd class="down">${f$(x.meta-x.real)} <small>${fP(1-p)} de la meta</small></dd></div>`+
+      `<div><dt>Venta diaria promedio</dt><dd>${d.length?f$(x.real/d.length):'—'}${pd?` <small>de ${f$(pd)} requeridos</small>`:''}</dd></div>`+
+      `<div><dt>Días en meta diaria</dt><dd>${enMeta==null?'—':`${enMeta} de ${d.length}`}</dd></div>`+
+      `<div><dt>Venta</dt><dd>${vs(x.real,x.realAnt)}</dd></div>`+
+      `<div><dt>Clientes</dt><dd>${fN(x.cliAct)} ${vs(x.cliAct,x.cliAnt)}</dd></div>`+
+      `<div><dt>Ticket promedio</dt><dd>${x.fac?f$(x.real/x.fac):'—'} ${x.fac?vs(x.real/x.fac,x.facAnt&&x.realAnt/x.facAnt):''}</dd></div>`+
+      `<div><dt>Farmacia / Misceláneos</dt><dd>${t?`${fP(x.farm/t,0)} / ${fP(x.misc/t,0)}`:'—'}</dd></div></dl>`+
+      (s.analisis?`<details class="nc-com"><summary>Comentario de la sucursal</summary><p class="quote">${esc(s.analisis)}</p></details>`:'')+
+      `<button class="link" style="align-self:flex-start" data-ver="${esc(x.key+'|'+mes)}">Ver detalle diario →</button></article>`;
+  }).join(''):'<p class="note">Todas las sucursales con meta cumplieron este mes.</p>';
+}
+
+function renderFarm(F){
+  const s=F.filter(x=>x.farm!=null).sort((a,b)=>(b.farm+b.misc)-(a.farm+a.misc));
+  $('#s-farm').hidden=!s.length;if(!s.length)return;
+  sizeBox('boxFarm',s.length);
+  hbar('chFarm',s.map(x=>cap(x.nombre)),[{label:'Farmacia',data:s.map(x=>x.farm),backgroundColor:css('--accent')},{label:'Misceláneos',data:s.map(x=>x.misc),backgroundColor:css('--ref')}],{fmt:v=>'$'+loc(v,0),stacked:true,plugins:[etiquetasPct],
+    tip:c=>{const x=s[c.dataIndex];return `${c.dataset.label}: ${f$(c.parsed.x)} · ${fP(c.parsed.x/(x.farm+x.misc))}`;}});
+  const fa=sum(s,'farm'),mi=sum(s,'misc');
+  $('#txFarm').innerHTML=`Farmacia aporta <b>${fP(fa/(fa+mi))}</b> de la venta (${f$(fa)}) y misceláneos <b>${fP(mi/(fa+mi))}</b> (${f$(mi)}) en ${s.length} sucursal${s.length>1?'es':''} con estadística cargada.`;
+}
+
+function renderAud(F){
+  const a=F.filter(x=>x.aud!=null).sort((x,y)=>y.aud-x.aud);
+  $('#s-aud').hidden=!a.length;if(!a.length)return;
+  sizeBox('boxAud',a.length*1.5);
+  hbar('chAud',a.map(x=>cap(x.nombre)),[{label:'% Auditoría',data:a.map(x=>x.aud),backgroundColor:css('--accent'),borderRadius:3},{label:'% Acción C.',data:a.map(x=>x.acc),backgroundColor:css('--ref'),borderRadius:3}],{fmt:v=>fP(v,0)});
+  const sinAcc=a.filter(x=>!x.acc);
+  $('#txAud').innerHTML=`Promedio de auditoría: <b>${fP(sum(a,'aud')/a.length)}</b> en ${a.length} sucursales. Más alta: <b>${esc(cap(a[0].nombre))}</b> (${fP(a[0].aud,0)}). Más baja: <b>${esc(cap(a.at(-1).nombre))}</b> (${fP(a.at(-1).aud,0)}).`+
+    (sinAcc.length?` <b>${sinAcc.length}</b> sucursales tienen la acción correctiva en 0% o sin registrar: ${sinAcc.map(x=>esc(cap(x.nombre))).join(', ')}.`:'');
+}
+
+function renderMerma(F){
+  const m=F.filter(x=>x.merma!=null).sort((a,b)=>b.merma-a.merma);
+  $('#s-merma').hidden=!m.length;if(!m.length)return;
+  const col={FALTANTE:css('--bad'),VENCIDO:css('--warn'),'DAÑADO':css('--pod')},c=o=>col[o]||css('--ref');
+  const tot=sum(m,'merma'),orig={};
+  m.forEach(x=>{const o=orig[x.origen]??={monto:0,n:0};o.monto+=x.merma;o.n++;});
+  $('#mermaChips').innerHTML=`<div class="chip"><span>Total</span><b>${f$(tot)}</b></div>`+Object.entries(orig).sort((a,b)=>b[1].monto-a[1].monto)
+    .map(([o,v])=>`<div class="chip" style="border-left:4px solid ${c(o)}"><span>${esc(cap(o))} · ${v.n} suc.</span><b>${f$(v.monto)}</b></div>`).join('');
+  sizeBox('boxMerma',m.length);
+  hbar('chMerma',m.map(x=>cap(x.nombre)),[{data:m.map(x=>x.merma),backgroundColor:m.map(x=>c(x.origen)),borderRadius:3}],
+    {fmt:v=>'$'+loc(v,0),tip:c=>`${f$(m[c.dataIndex].merma)} · ${cap(m[c.dataIndex].origen)}`});
+  const top3=m.slice(0,3);
+  $('#txMerma').innerHTML=`La merma auditada suma <b>${f$(tot)}</b> en ${m.length} sucursales. <b>${esc(cap(m[0].nombre))}</b> sola concentra el <b>${fP(m[0].merma/tot,0)}</b> del total, y las 3 primeras (${top3.map(x=>esc(cap(x.nombre))).join(', ')}) suman el ${fP(sum(top3,'merma')/tot,0)}.`;
+}
+
+// Highest number of incidencias a store may have in a month (set by the chain); above it the cell turns red.
+const LIMITE_INC=2;
+function renderInc(F){
+  const I=state.inc,ms=I.meses,n=ms.length,L=LIMITE_INC,r=F.filter(x=>x.incSerie);
+  $('#s-inc').hidden=!r.length;if(!r.length)return;
+  const m=ms[n-1],a=ms[n-2],tot=ms.map((_,i)=>r.reduce((s,x)=>s+(x.incSerie[i]||0),0));
+  const v=x=>x.incSerie[n-1]??0,w=x=>x.incSerie[n-2]??0,reinc=x=>n>1&&x.incSerie.every(v=>v!=null&&v>L);
+  const ok=r.filter(x=>v(x)<=L),okA=n>1?r.filter(x=>w(x)<=L):[],mej=r.filter(x=>v(x)<w(x)).sort((p,q)=>(v(p)-w(p))-(v(q)-w(q))),
+    peo=r.filter(x=>v(x)>w(x)).sort((p,q)=>(v(q)-w(q))-(v(p)-w(p))),re=r.filter(reinc).sort((p,q)=>v(q)-v(p));
+  $('#incLim').textContent=L;
+  $('#incKpis').innerHTML=[
+    kpi(`Incidencias de ${esc(cap(m))}`,'alerta',fN(tot[n-1]),n>1?delta(tot[n-1],tot[n-2],a,true)+` (${fN(tot[n-2])})`:''),
+    kpi(`Dentro del límite (≤ ${L})`,'target',`${ok.length} de ${r.length}`,n>1?`${esc(cap(a))}: ${okA.length} de ${r.length}`:`Máximo ${L} al mes`),
+    kpi('Mejoraron','users',n>1?`${mej.length} de ${r.length}`:'—',n>1?`Empeoraron: ${peo.length}`:''),
+    kpi('Reincidentes','alerta',n>1?`<span class="down">${re.length}</span>`:'—',n>1?`Sobre el límite los ${n} meses`:'')].join('');
+  // Total above each bar and its change against the previous bar.
+  const etiq={id:'etiq',afterDatasetsDraw(c){const ctx=c.ctx;ctx.save();ctx.textAlign='center';
+    c.getDatasetMeta(0).data.forEach((b,i)=>{const t=tot[i],p=tot[i-1];
+      ctx.font=`700 12px ${css('--f-body')}`;ctx.fillStyle=css('--ink');ctx.fillText(fN(t),b.x,b.y-(i&&p?20:6));
+      if(i&&p){const d=(t-p)/p;ctx.font=`600 11px ${css('--f-body')}`;ctx.fillStyle=d<=0?css('--good'):css('--bad');ctx.fillText(`${d<=0?'↓':'↑'} ${fP(Math.abs(d),0)}`,b.x,b.y-6);}});
+    ctx.restore();}};
+  chart('chInc',{type:'bar',plugins:[etiq],data:{labels:ms.map(cap),datasets:[{label:'Incidencias',data:tot,backgroundColor:tot.map((_,i)=>i===n-1?css('--bad'):css('--ref')),borderRadius:4}]},
+    options:{maintainAspectRatio:false,animation:false,layout:{padding:{top:30}},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:css('--line')}},x:{grid:{display:false}}}}});
+  const max=Math.max(1,...r.flatMap(x=>x.incSerie.map(v=>v||0))),maxM=Math.max(1,...r.map(v));
+  const heat=v=>v==null?'<td class="h">—</td>':v<=L?`<td class="h" style="background:var(--surface-2);color:var(--muted)">${v}</td>`
+    :`<td class="h" style="background:color-mix(in srgb,var(--bad) ${Math.round(20+v/max*50)}%,transparent)">${v}</td>`;
+  const flecha=x=>{const d=v(x)-w(x);return n<2?'':`<td class="h ${d<0?'up':d>0?'down':''}">${d<0?'↓':d>0?'↑':'='} ${d?Math.abs(d):''}</td>`;};
+  const estado=x=>reinc(x)?'<span class="pill" style="background:var(--bad);color:var(--surface)">Reincidente</span>':v(x)>L?'<span class="pill no">Fuera</span>':'<span class="pill ok">Dentro</span>';
+  const fila=x=>`<tr><td>${esc(cap(x.nombre))}${x.pod?'<span class="tag">PODEROSO</span>':''}</td><td>${estado(x)}</td>${x.incSerie.map(heat).join('')}${flecha(x)}`+
+    `<td style="min-width:90px"><div class="mbar" style="width:${v(x)/maxM*100}%;background:var(${v(x)>L?'--bad':'--ref'})"></div></td></tr>`;
+  const ord=xs=>[...xs].sort((p,q)=>v(q)-v(p)||w(q)-w(p)),fuera=ord(r.filter(x=>v(x)>L)),cols=n+(n>1?4:3);
+  const grp=t=>`<tr class="grp"><td colspan="${cols}">${t}</td></tr>`;
+  $('#heat').innerHTML=`<thead><tr><th>Sucursal</th><th>Estado</th>${ms.map(m=>`<th>${esc(cap(m))}</th>`).join('')}${n>1?`<th>vs ${esc(cap(a))}</th>`:''}<th>${esc(cap(m))}</th></tr></thead><tbody>`+
+    (fuera.length?grp(`Fuera del límite · ${fuera.length}`)+fuera.map(fila).join(''):'')+(ok.length?grp(`Dentro del límite · ${ok.length}`)+ord(ok).map(fila).join(''):'')+
+    `<tr><td><b>Total</b></td><td></td>${tot.map(v=>`<td class="h"><b>${v}</b></td>`).join('')}${n>1?'<td></td>':''}<td></td></tr></tbody>`;
+  const lista=xs=>xs.map(x=>`${esc(cap(x.nombre))} (${n>1?`${w(x)} → `:''}${v(x)})`).join(', ');
+  const li=[`En ${esc(cap(m))} hubo <b>${tot[n-1]}</b> incidencias`+(n>1?`: ${tot[n-1]<=tot[n-2]?`<span class="up">${tot[n-2]-tot[n-1]} menos</span>`:`<span class="down">${tot[n-1]-tot[n-2]} más</span>`} que en ${esc(cap(a))} (${tot[n-2]}).`:'.'),
+    `<b>${ok.length} de ${r.length}</b> sucursales dentro del límite de ${L}`+(n>1?` (en ${esc(cap(a))} eran ${okA.length}).`:'.')];
+  if(peo.length)li.push(`<span class="down">Más subieron:</span> ${lista(peo.slice(0,3))}.`);
+  if(mej.length)li.push(`<span class="up">Más bajaron:</span> ${lista(mej.slice(0,3))}.`);
+  if(re.length)li.push(`<span class="down"><b>${re.length} reincidentes</b></span> (sobre el límite los ${n} meses): ${lista(re)}.`);
+  $('#txInc').innerHTML=`<ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+}
+
+function renderDetalle(){
+  const list=[...state.stores.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre)||per(a.mes)-per(b.mes));
+  $('#s-det').hidden=!list.length;if(!list.length)return;
+  const sel=$('#selSuc'),prev=sel.value;
+  sel.innerHTML=list.map(s=>`<option value="${esc(s.key+'|'+s.mes)}">${esc(cap(s.nombre))} · ${esc(cap(s.mes))}</option>`).join('');
+  if(list.some(s=>s.key+'|'+s.mes===prev))sel.value=prev;
+  const s=state.stores.get(sel.value),p=s.meta?s.total/s.meta:null,a=state.stores.get(s.key+'|'+prevMes(s.mes));
+  $('#detKpis').innerHTML=[['Meta',f$(s.meta),s.promDia?`${f$(s.promDia)} por día`:''],
+    ['Venta',f$(s.total),(p==null?'':`${fP(p)} de la meta · `)+delta(s.total,a?.total,prevMes(s.mes))],
+    ['Farmacia / Misc.',fP(s.farmacia/s.total,0)+' / '+fP(s.misc/s.total,0),`${f$(s.farmacia)} / ${f$(s.misc)}`],['Clientes',fN(s.clientes),`${fN(s.clientes/(s.dias.length||1))} por día`],
+    ['Ticket promedio',f$(s.ticket),`${fN(s.facturas)} facturas`],['Unidades vendidas',fN(s.unidades),'']]
+    .map(([a,b,c],i)=>kpi(a,null,b,c,i===1)).join('');
+  chart('chDia',{data:{labels:s.dias.map(d=>d.dia),datasets:[
+    {type:'bar',label:'Venta diaria',data:s.dias.map(d=>d.venta),backgroundColor:s.dias.map(d=>s.promDia&&d.venta>=s.promDia?css('--accent'):css('--ref')),borderRadius:2},
+    ...(s.promDia?[{type:'line',label:'Promedio diario requerido',data:s.dias.map(()=>s.promDia),borderColor:css('--ink'),borderDash:[5,4],pointRadius:0,borderWidth:1.5}]:[])]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',align:'start',labels:{boxWidth:12}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${f$(c.parsed.y)}`}}},
+      scales:{y:{ticks:{callback:v=>'$'+loc(v,0)},grid:{color:css('--line')}},x:{grid:{display:false},title:{display:true,text:'Día del mes'}}}}});
+  $('#txDet').textContent=s.analisis||'La sucursal no escribió análisis en este archivo.';
+  $('#topVend').innerHTML=s.top.map(t=>`<li>${esc(t)}</li>`).join('')||'<li>Sin datos</li>';
+  $('#sinRot').innerHTML=s.sinRot.map(t=>`<li>${esc(t)}</li>`).join('')||'<li>Sin datos</li>';
+}
+
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{state.filtro=b.dataset.f;render();}));
+$('#selSuc').addEventListener('change',renderDetalle);
+$('#selRes').addEventListener('change',e=>{state.suc=e.target.value;render();});
+$('#ncGrid').addEventListener('click',e=>{const b=e.target.closest('[data-ver]');if(!b)return;$('#selSuc').innerHTML=`<option value="${esc(b.dataset.ver)}"></option>`;$('#selSuc').value=b.dataset.ver;setTab('sucursal');});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+// ===== Daily closes: login, per-branch loading, month close with Excel, supervision. =====
+// Data lives in Supabase (supabase/carga.sql): carga_cierres, carga_meses and carga_metas. Role and branch come from the server (carga_contexto).
+// derive() turns them into the same monthly records Statistics builds from the Excel files, so every existing view works unchanged.
+// Datos del proyecto de Supabase (los mismos del tablero). La clave "anon" es pública por diseño; nunca pongas aquí la clave secreta de servicio.
+const SUPABASE_URL='https://qosmkkbcekbdzqfkhfgo.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvc21ra2JjZWtiZHpxZmtoZmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MDg3MjQsImV4cCI6MjEwOTM4NDcyNH0.hfzW2DZoYGycHYKBb8apRFi9v4HoqEueby5L8pm5I-c';
+const DOMINIO_USUARIOS='carga.invalid';   // each user signs in as <usuario>@carga.invalid; same constant in scripts/crear-usuarios-carga.js
+let INICIO='2026-11';                     // first month branches load; carga_contexto() confirms it
+const ETIQ={'PAGINA WEB':'Página Web','PODEROSO':'Poderoso Juncal','POD HOSPITAL':'Poderoso Hospital','PLAZA SIETE':'Plaza 7','AV BOLIVAR':'Av. Bolívar','GOBERNACION':'Gobernación','EJERCITO':'Ejército','BOQUERON':'Boquerón'};
+const slug=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+// The id is the branch's username and the key in carga_sucursales: changing a label changes the user (tests/test-carga.js pins the 32 ids).
+const TIENDAS=SUCURSALES.map((n,i)=>{const label=ETIQ[n]||cap(n),g=GRUPOS_TICKET.find(g=>g.suc.some(x=>storeKey(x)===storeKey(n)));
+  return{n,nombre:cleanName(n),key:storeKey(n),id:slug(label),label,codigo:String(i+1).padStart(2,'0'),grupo:g?.n,min:g?.min,canal:esCanal(storeKey(n))};}).sort((a,b)=>a.label.localeCompare(b.label));
+const tienda=id=>TIENDAS.find(t=>t.id===id);
+const SUP={gerencia:'Gerencia general',vicepresidencia:'Vicepresidencia',presidencia:'Presidencia',admin:'Administrador'};
+const USUARIOS=Object.fromEntries([...TIENDAS.map(t=>[t.id,{rol:'sucursal',tienda:t.id,nombre:t.label}]),...Object.entries(SUP).map(([u,n])=>[u,{rol:u,nombre:n}])]);
+const MESES_L=MESES.map(m=>m.toLowerCase()),DIAS_L=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const pad2=n=>String(n).padStart(2,'0'),isoD=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+// "Today" is the server's date in Venezuela; until it answers, the browser computes it in the same time zone.
+let HOY,MES_HOY;
+function fijarHoy(iso){HOY=iso;MES_HOY=iso.slice(0,7);}
+fijarHoy(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Caracas',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+const diasDe=m=>{const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();};
+const sig=m=>{const [y,mm]=m.split('-').map(Number);return mm===12?`${y+1}-01`:`${y}-${pad2(mm+1)}`;};
+const mesTxt=m=>{const [y,mm]=m.split('-').map(Number);return `${cap(MESES[mm-1])} ${y}`;};
+const mesStat=m=>{const [y,mm]=m.split('-').map(Number);return `${MESES[mm-1]} ${y}`;};
+const fechaL=s=>{const d=new Date(s+'T12:00:00');return `${DIAS_L[d.getDay()]} ${d.getDate()} de ${MESES_L[d.getMonth()]}`;};
+
+const D={cierres:new Map(),meses:new Map(),metas:new Map(),modo:'cargando',err:'',sb:null,canal:null,cfg:{reabren:[]},sucio:false,caido:false,cola:null,lectura:0};
+const U={user:null,fecha:null,mesSup:MES_HOY};
+const ZONA='America/Caracas',ESPERA_VIVO=15000;
+// Numbers typed the local way: dots are thousands only when 3 digits follow, comma is the decimal mark ("160.000,5" -> 160000.5).
+const leerNum=x=>{const s=String(x??'').trim().replace(/\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.');return s===''?null:Number(s);};
+const numTxt=v=>String(v).replace('.',',');
+
+// ---- reads ----
+const metaDe=(t,m)=>Number(D.metas.get(m)?.[t.id])||null;
+const cierresDe=(id,m)=>[...D.cierres.values()].filter(r=>r.suc===id&&r.fecha.startsWith(m)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+const cerrado=(id,m)=>!!D.meses.get(id+'_'+m)?.cerrado;
+function mesTrabajo(id){let m=INICIO;while(cerrado(id,m))m=sig(m);return m;}
+const ultimoCargable=m=>m<MES_HOY?diasDe(m):m===MES_HOY?Number(HOY.slice(8)):0;
+function registro(t,m){
+  const rs=cierresDe(t.id,m),cm=D.meses.get(t.id+'_'+m)||{},metaMes=metaDe(t,m),n=diasDe(m),s=k=>rs.reduce((a,r)=>a+(Number(r[k])||0),0);
+  // Month still in progress: views compare against the goal to date (share of the goal for the days loaded); Excel and close keep the full goal.
+  // Without a goal (only possible in a month with no closes, the server refuses closes without one) meta and promDia stay null.
+  const parcial=m>=MES_HOY&&rs.length<n,meta=metaMes==null?null:parcial?metaMes*rs.length/n:metaMes;
+  const dias=rs.map(r=>({dia:Number(r.fecha.slice(8)),venta:r.farm+r.misc,fac:r.fac,unid:r.unid,cli:r.cli}));
+  const farmacia=s('farm'),misc=s('misc'),total=farmacia+misc,fac=s('fac');
+  return{nombre:t.nombre,key:t.key,codigo:t.codigo,mes:mesStat(m),meta,metaMes,parcial,promDia:metaMes==null?null:metaMes/n,farmacia,misc,total,enOtraMoneda:false,dias,
+    clientes:s('cli'),facturas:fac,unidades:s('unid'),ticket:fac?total/fac:null,inc:s('inc'),top:cm.top||[],sinRot:cm.sinRot||[],analisis:cm.analisis||'',coment:rs};
+}
+// Replaces the Excel-based derive(): one record per branch and month with closes, plus the incidencias series from the daily counts.
+function derive(){
+  state.cons=null;state.stores=new Map();state.inc=null;
+  // A branch user only ever gets its own store's data, so every Statistics view it opens is about that store alone.
+  const sup=U.user&&U.user.rol!=='sucursal',tope=sup?U.mesSup:null,ver=sup||!U.user?TIENDAS:TIENDAS.filter(t=>t.id===U.user.tienda);
+  const meses=[...new Set([...D.cierres.values()].filter(r=>ver.some(t=>t.id===r.suc)).map(r=>r.fecha.slice(0,7)))].filter(m=>!tope||m<=tope).sort();
+  for(const t of ver)for(const m of meses){const r=registro(t,m);if(r.dias.length)state.stores.set(r.key+'|'+r.mes,r);}
+  const ult=meses.slice(-6);
+  if(ult.length)state.inc={meses:ult.map(m=>MESES[Number(m.slice(5))-1]),filas:ver.map(t=>({nombre:t.nombre,valores:ult.map(m=>{const rs=cierresDe(t.id,m);return rs.length?rs.reduce((a,r)=>a+(Number(r.inc)||0),0):null;})})).filter(f=>f.valores.some(v=>v!=null))};
+}
+
+// ---- Supabase ----
+// Database row -> the document the views already use (same shape as the test build).
+const tsDe=s=>s==null?null:Date.parse(String(s).replace(' ','T').replace(/([+-]\d\d)$/,'$1:00'));
+const aDoc={
+  cierres:r=>({suc:r.sucursal,fecha:r.fecha,farm:+r.farm,misc:+r.misc,cli:+r.cli,fac:+r.fac,unid:+r.unid,inc:+r.inc,com:r.com||'',usuario:r.usuario,ts:tsDe(r.ts)}),
+  meses:r=>({suc:r.sucursal,mes:r.mes,cerrado:r.cerrado,analisis:r.analisis||'',top:r.top||[],sinRot:r.sin_rot||[],usuario:r.usuario,ts:tsDe(r.ts),reabierto:r.reabierto_por,tsRe:r.reabierto_ts&&tsDe(r.reabierto_ts)})};
+function aplicar(col,fila,borrada){
+  if(!fila)return;
+  if(col==='metas'){const doc={...(D.metas.get(fila.mes)||{})};
+    if(borrada)delete doc[fila.sucursal];else doc[fila.sucursal]=Number(fila.meta);
+    Object.keys(doc).length?D.metas.set(fila.mes,doc):D.metas.delete(fila.mes);return;}
+  // A date or month in any other shape is ignored rather than mistaken for a valid day.
+  const clave=col==='cierres'?fila.fecha:fila.mes;
+  if(!(col==='cierres'?/^\d{4}-\d{2}-\d{2}$/:/^\d{4}-\d{2}$/).test(String(clave)))return;
+  const id=fila.sucursal+'_'+clave;
+  borrada?D[col].delete(id):D[col].set(id,aDoc[col](fila));
+}
+// PostgREST returns at most 1000 rows per request: read page by page, ordered so pages don't overlap.
+async function leerTodo(tabla,orden,desde){
+  const out=[];
+  for(let i=0;;i+=1000){
+    let q=D.sb.from(tabla).select('*');
+    if(desde)q=q.gte('fecha',desde);
+    for(const c of orden)q=q.order(c);
+    const {data,error}=await q.range(i,i+999);
+    if(error)throw error;
+    out.push(...(data||[]));
+    if(!data||data.length<1000)return out;
+  }
+}
+// Closes from the first day of 12 months ago (13 months on screen); month closes and goals in full.
+// Realtime events that arrive while reading are queued and applied on top of the snapshot (rows replace by key, so twice is harmless).
+// A read is thrown away if the session changed or a newer read started meanwhile.
+async function cargarDatos(){
+  const n=++D.lectura,uid=sesUid;D.cola=[];
+  const [y,mm]=MES_HOY.split('-').map(Number),d=new Date(y,mm-13,1),desde=`${d.getFullYear()}-${pad2(d.getMonth()+1)}-01`;
+  let c,me,mt;
+  try{[c,me,mt]=await Promise.all([leerTodo('carga_cierres',['fecha','sucursal'],desde),leerTodo('carga_meses',['sucursal','mes']),leerTodo('carga_metas',['mes','sucursal'])]);}
+  catch{if(n===D.lectura&&uid===sesUid){D.cola=null;errLectura(uid);}return;}
+  if(n!==D.lectura||uid!==sesUid)return;
+  D.reintentos=0;
+  D.cierres=new Map();D.meses=new Map();D.metas=new Map();
+  c.forEach(r=>aplicar('cierres',r));me.forEach(r=>aplicar('meses',r));mt.forEach(r=>aplicar('metas',r));
+  const cola=D.cola||[];D.cola=null;cola.forEach(([col,fila,b])=>aplicar(col,fila,b));
+  if(D.vivo){D.modo='compartido';D.err='';}
+  pintar();
+}
+// A failed read retries on its own while the same session lasts: 2 s, 4 s, 8 s… up to 1 minute.
+function errLectura(uid){
+  D.modo='error';D.caido=true;D.err='No se pudieron leer los datos; pueden estar desactualizados. Revisa tu conexión.';pintar();
+  clearTimeout(D.tReint);const espera=Math.min(60000,2000*2**(D.reintentos||0));D.reintentos=(D.reintentos||0)+1;
+  D.tReint=setTimeout(()=>{if(sesUid===uid&&U.user)cargarDatos();},espera);
+}
+// Where the session is kept. A branch keeps it in localStorage (its computer stays signed in); gerencia, vicepresidencia, presidencia
+// and admin keep it in sessionStorage, so on a shared computer it ends when the tab closes. Until the role is known (carga_contexto),
+// a write goes where the session already is, else to sessionStorage (the safe side); fijarAlmacen() then moves it to its place.
+const CLAVE_SESION='statistics-carga-auth',CLAVES_SESION=[CLAVE_SESION,CLAVE_SESION+'-code-verifier'];
+const almacen={modo:null,
+  getItem(k){try{return sessionStorage.getItem(k)??localStorage.getItem(k);}catch{return null;}},
+  setItem(k,v){try{const local=almacen.modo?almacen.modo==='local':localStorage.getItem(k)!=null&&sessionStorage.getItem(k)==null;
+    (local?localStorage:sessionStorage).setItem(k,v);(local?sessionStorage:localStorage).removeItem(k);}catch{}},
+  removeItem(k){try{localStorage.removeItem(k);sessionStorage.removeItem(k);}catch{}}};
+function fijarAlmacen(rol){
+  almacen.modo=rol==='sucursal'?'local':'sesion';
+  const [de,a]=almacen.modo==='local'?[sessionStorage,localStorage]:[localStorage,sessionStorage];
+  try{for(const k of CLAVES_SESION){const v=de.getItem(k);if(v!=null){a.setItem(k,v);de.removeItem(k);}}}catch{}
+}
+const borrarSesion=()=>{almacen.modo=null;CLAVES_SESION.forEach(k=>almacen.removeItem(k));};   // both stores
+async function conectar(){
+  if(!window.supabase){D.modo='error';pintarLogin('No se pudo cargar la conexión con la base de datos. Revisa internet y recarga la página.');return;}
+  D.sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:CLAVE_SESION,storage:almacen,detectSessionInUrl:false}});   // own key: a /carga/ session never shows up in the dashboard at /
+  // supabase-js 2 deadlocks if the auth callback calls Supabase itself: hand off to a timer.
+  D.sb.auth.onAuthStateChange((_ev,s)=>{setTimeout(()=>alCambiarSesion(s),0);});
+  let s=null;try{s=(await D.sb.auth.getSession()).data?.session||null;}catch{}
+  alCambiarSesion(s);
+}
+// Everything of the previous user goes: data, view state, painted boxes, drafts, live channel and pending reads.
+const LIMPIO=new Map();   // filled at start: every element of the app with no child elements -> its initial content
+function limpiar(){
+  desuscribir();D.lectura++;D.cola=null;almacen.modo=null;clearTimeout(pintar.t);pintar.t=null;clearTimeout(D.tMed);clearTimeout(D.tReint);D.reintentos=0;
+  D.cierres=new Map();D.meses=new Map();D.metas=new Map();D.modo='cargando';D.err='';D.caido=false;D.sucio=false;
+  Object.assign(U,{user:null,fecha:null,mesSup:MES_HOY,fechaCtrl:null,mesMeses:null,mesMetas:null,mesProd:null,reArmado:null});
+  BORR.clave='';BORR.v={};state.suc='';state.filtro='todas';derive();
+  for(const [el,html] of LIMPIO)el.innerHTML=html;
+  for(const k of Object.keys(charts)){try{charts[k].destroy();}catch{}delete charts[k];}
+  const tp=$('#toastP');if(tp){tp.hidden=true;tp.textContent='';}
+}
+let sesUid;   // undefined until the first answer; then the signed-in user id or null
+async function alCambiarSesion(s){
+  const uid=s?.user?.id||null;
+  if(uid===sesUid)return;   // TOKEN_REFRESHED, INITIAL_SESSION and the getSession() answer for the same user change nothing
+  sesUid=uid;limpiar();
+  if(!uid){borrarSesion();pintarLogin();return;}
+  let ctx=null,error=null;
+  try{({data:ctx,error}=await D.sb.rpc('carga_contexto'));}catch(e){error=e;}
+  if(sesUid!==uid)return;   // the session changed while waiting
+  if(error){sesUid=undefined;pintarLogin('No se pudo conectar con la base de datos. Revisa tu conexión e intenta de nuevo.');return;}
+  if(!ctx||(ctx.rol==='sucursal'&&!tienda(ctx.sucursal))){
+    sesUid=null;pintarLogin(ctx?'Tu sucursal no está en la lista de esta página. Avísale al administrador.':'Esta cuenta no tiene acceso a la carga diaria.');
+    D.sb.auth.signOut({scope:'local'}).catch(()=>{}).finally(borrarSesion);borrarSesion();return;}
+  if(ctx.hoy)fijarHoy(String(ctx.hoy).slice(0,10));
+  if(ctx.inicio)INICIO=ctx.inicio;
+  D.cfg={reabren:ctx.reabren||[]};
+  fijarAlmacen(ctx.rol);entrar(ctx);programarMedianoche();
+  suscribir();   // subscribe first; the first SUBSCRIBED reads the data, so nothing committed in between is missed
+}
+function desuscribir(){clearTimeout(D.tVivo);D.vivo=false;const c=D.canal;D.canal=null;if(c)try{D.sb.removeChannel(c);}catch{}}
+function suscribir(){
+  desuscribir();
+  const ch=D.sb.channel('carga');D.canal=ch;D.caido=true;
+  for(const [tabla,col] of [['carga_cierres','cierres'],['carga_meses','meses'],['carga_metas','metas']])
+    ch.on('postgres_changes',{event:'*',schema:'public',table:tabla},p=>{if(D.canal!==ch)return;const b=p.eventType==='DELETE',fila=b?p.old:p.new;
+      if(D.cola)D.cola.push([col,fila,b]);aplicar(col,fila,b);pintar();});
+  ch.subscribe(st=>{
+    if(D.canal!==ch)return;
+    if(st==='SUBSCRIBED'){clearTimeout(D.tVivo);D.vivo=true;D.modo='compartido';D.err='';const re=D.caido;D.caido=false;if(re)cargarDatos();else pintar();}
+    else if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(st)){D.vivo=false;D.modo='error';D.caido=true;D.err='Se perdió la conexión en vivo; los datos pueden estar desactualizados.';pintar();}
+  });
+  // No live connection after a while: say so, and still read the data so the views fill.
+  D.tVivo=setTimeout(()=>{if(D.canal!==ch||D.vivo)return;D.modo='error';D.err='No se pudo activar la conexión en vivo: lo que carguen otros no se verá hasta recargar la página.';cargarDatos();},ESPERA_VIVO);
+}
+// Every repaint after the first paint goes through here: at most one every 150 ms, and never while someone is typing in a form
+// or in the "Carga del día" date (it would take the focus away); it runs when the focus leaves.
+const enFormulario=()=>!!document.activeElement?.closest?.('#fC,#fM,#fMe,#cF');
+function pintar(){
+  clearTimeout(pintar.t);
+  pintar.t=setTimeout(()=>{pintar.t=null;if(enFormulario()){D.sucio=true;return;}D.sucio=false;derive();render();},150);
+}
+document.addEventListener('focusout',()=>{if(D.sucio)setTimeout(()=>{if(!D.sucio||enFormulario())return;D.sucio=false;derive();render();},0);});
+// Unsaved typing survives repaints: values are kept per field id while the view and its day or month stay the same.
+// Each field carries data-base, the server's value it was painted with; a draft remembers the base it was typed over.
+const BORR={clave:'',v:{},aviso:false};
+document.addEventListener('input',e=>{const x=e.target;if(x.id&&x.closest?.('#fC,#fM,#fMe'))BORR.v[x.id]={v:x.value,base:x.dataset.base};});
+function reponerBorrador(){
+  const u=U.user,k=!u?'':tab==='carga'?'carga|'+U.fecha:tab==='cierre'?'cierre|'+mesTrabajo(u.tienda):tab==='metas'?'metas|'+(U.mesMetas||MES_HOY):tab;
+  if(k!==BORR.clave){BORR.clave=k;BORR.v={};BORR.aviso=false;return;}
+  const choques=[];
+  for(const [id,d] of Object.entries(BORR.v)){const x=document.getElementById(id);if(!x||x.disabled)continue;
+    if(x.dataset.base!==d.base){
+      // Someone else saved this field while it was being typed. Untouched (draft equals the old value): show the new value.
+      if(d.v===d.base){delete BORR.v[id];continue;}
+      // Changed: keep the typing, mark it and explain; the draft keeps its old base so the mark stays until the field is edited again.
+      x.value=d.v;x.dispatchEvent(new Event('input',{bubbles:true}));BORR.v[id]=d;x.classList.add('err');choques.push(x);continue;}
+    if(x.value!==d.v){x.value=d.v;x.dispatchEvent(new Event('input',{bubbles:true}));}}
+  const f=document.querySelector('#fC,#fMe');
+  if(f&&(choques.length||BORR.aviso)){const p=document.createElement('p');p.className='note warn';p.id='avisoCambio';p.setAttribute('role','alert');
+    p.textContent=f.id==='fMe'?`Otra persona cambió esta meta mientras escribías: revisa antes de guardar (${choques.map(x=>x.closest('label').firstElementChild.textContent.replace(/\s*Cerrado$/,'')).join(', ')}).`
+      :'Otra persona cambió el cierre de este día mientras escribías: revisa antes de guardar.';
+    f.prepend(p);}
+  BORR.aviso=false;
+}
+// Views keep calling escribir() with the same documents as the test build; this maps them to tables and functions.
+async function escribir(col,id,data){
+  const uid=sesUid,colgar=()=>new Promise(()=>{});
+  // Signed out (or another user signed in) while waiting: apply nothing, and never settle so the caller's toast, error text and repaint don't run.
+  let r;try{r=await escribirServidor(col,id,data);}catch(e){if(sesUid!==uid)return colgar();throw e;}
+  if(sesUid!==uid)return colgar();
+  if(col==='metas'){const doc={};(r||[]).forEach(x=>doc[x.sucursal]=Number(x.meta));Object.keys(doc).length?D.metas.set(id,doc):D.metas.delete(id);}
+  else aplicar(col,Array.isArray(r)?r[0]:r);
+  BORR.v={};derive();render();
+}
+async function escribirServidor(col,id,data){
+  let res;
+  if(col==='cierres')res=await D.sb.from('carga_cierres').upsert({sucursal:data.suc,fecha:data.fecha,farm:data.farm,misc:data.misc,cli:data.cli,fac:data.fac,unid:data.unid,inc:data.inc,com:data.com},{onConflict:'sucursal,fecha'}).select().single();
+  else if(col==='meses')res=data.cerrado?await D.sb.rpc('carga_cerrar_mes',{p_mes:data.mes,p_analisis:data.analisis,p_top:data.top||[],p_sin_rot:data.sinRot||[]})
+    :await D.sb.rpc('carga_reabrir_mes',{p_sucursal:data.suc,p_mes:data.mes});
+  else res=await D.sb.rpc('carga_guardar_metas',{p_mes:id,p_metas:data});   // the whole month, all or nothing
+  if(res.error)throw res.error;
+  return res.data;
+}
+async function refrescarHoy(){
+  if(!D.sb||!U.user)return;
+  let r;try{r=await D.sb.rpc('carga_hoy');}catch{return;}
+  if(r?.error||!r?.data||!U.user)return;
+  const nuevo=String(r.data).slice(0,10);if(nuevo===HOY)return;
+  const antes=MES_HOY;fijarHoy(nuevo);if(U.mesSup===antes)U.mesSup=MES_HOY;pintar();
+}
+// Besides every hour and on returning to the tab, check right after midnight in Caracas (Venezuela has no daylight saving time).
+function programarMedianoche(){
+  clearTimeout(D.tMed);
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:ZONA,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const pasado=((+p.hour%24)*3600+(+p.minute)*60+(+p.second))*1000;
+  D.tMed=setTimeout(()=>{refrescarHoy();programarMedianoche();},86400000-pasado+5000);
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refrescarHoy();});
+setInterval(refrescarHoy,3600000);
+const MSG_FAC='Si hubo venta, clientes o unidades, las facturas deben ser mayores que 0. Para un día sin operación deja todo en 0.';
+const ERR_CARGA={CARGA_MES_CERRADO:'Ese mes ya está cerrado: no se puede cambiar.',CARGA_SIN_META:'La dirección todavía no cargó la meta de este mes para tu sucursal.',
+  CARGA_META_EN_USO:'No se puede quitar la meta de una sucursal que ya cargó cierres en ese mes.'};
+const errTxt=e=>{
+  const msg=String(e?.message||''),k=(msg.match(/CARGA_[A-Z_]+/)||[])[0];
+  if(ERR_CARGA[k])return ERR_CARGA[k];
+  // Any other CARGA_* code: the server's own Spanish text after the code.
+  if(k){const t=msg.slice(msg.indexOf(k)+k.length).replace(/^:\s*/,'').trim();return t?t[0].toUpperCase()+t.slice(1).replace(/\.?$/,'.'):'No se pudo guardar.';}
+  if(/carga_cierres_sin_operacion/.test(msg+' '+(e?.details||'')))return MSG_FAC;
+  if(e?.code==='22003')return 'Número demasiado grande.';
+  if(e?.code==='42501'||/row-level security/i.test(msg))return 'Tu usuario no tiene permiso para esto.';
+  if(/fetch|network|load failed|timed? ?out/i.test(msg)||e?.name==='TypeError')return 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.';
+  return 'No se pudo guardar. Intenta de nuevo; si sigue pasando, avísale al administrador.';
+};
+
+// ---- Excel in the "Estadística de ventas" layout (re-readable by Statistics' own parser) ----
+function hoja(t,m){
+  const r=registro(t,m),fila=r.coment;
+  const aoa=[['ESTADÍSTICA DE VENTAS','','','','','','','','FRMD-F-SC-018'],[],
+    ['SUCURSAL:',`${t.codigo} - ${t.nombre}`],['MES:',r.mes],['META:',r.metaMes],['PROMEDIO DIARIO:',r.promDia],[],
+    ['FARMACIA','MISCELANEOS','CUMPLIMIENTO','% CUMPLIMIENTO'],[r.farmacia,r.misc,r.total,r.metaMes?r.total/r.metaMes:null],[],
+    ['VTA DIARIA','DIA','CLIENTE','NRO DE FAC','UNIDADES DIARIA','FARMACIA','MISCELANEOS','TICKET','INCIDENCIAS EN VENTA','COMENTARIO','CARGADO POR'],
+    ...fila.map(x=>[x.farm+x.misc,Number(x.fecha.slice(8)),x.cli,x.fac,x.unid,x.farm,x.misc,x.fac?(x.farm+x.misc)/x.fac:null,x.inc||0,x.com||'',x.usuario||'']),
+    ['TOTAL','',r.clientes,r.facturas,r.unidades,r.farmacia,r.misc,r.ticket,r.inc],[],
+    ['ANALISIS DE DATOS'],[r.analisis],[],
+    ['PRODUCTOS MAS VENDIDOS'],...r.top.map((x,i)=>[`${i+1}- ${x}`]),[],
+    ['PRODUCTOS SIN ROTACION EN TIENDA'],...r.sinRot.map((x,i)=>[`${i+1}- ${x}`])];
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[16,8,10,11,15,13,13,10,12,40,16].map(w=>({wch:w}));
+  Object.keys(ws).forEach(k=>{const c=ws[k];if(c&&c.t==='n'&&k[0]!=='!'){const col=XLSX.utils.decode_cell(k).c,row=XLSX.utils.decode_cell(k).r;
+    c.z=row===8&&col===3?'0.0%':[1,2,3,4,8].includes(col)&&row>10?'#,##0':'#,##0.00';}});
+  return ws;
+}
+async function bajarExcel(ids,m,nombre){
+  if(!window.XLSX){toastP('No se pudo cargar el generador de Excel. Recarga la página.');return;}
+  const wb=XLSX.utils.book_new();
+  ids.forEach(id=>{const t=tienda(id);XLSX.utils.book_append_sheet(wb,hoja(t,m),(ids.length>1?t.label:mesStat(m)).slice(0,31).replace(/[\\/?*[\]:]/g,' '));});
+  guardarLibro(wb,nombre);
+}
+function guardarLibro(wb,nombre){
+  const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'}),filename=`${nombre}.xlsx`;
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf]));a.download=filename;a.click();}catch{toastP('La descarga no está disponible en esta vista.');}
+}
+function toastP(t){let e=$('#toastP');if(!e){e=document.createElement('div');e.id='toastP';e.className='toastp';e.setAttribute('role','status');document.body.append(e);}e.textContent=t;e.hidden=false;clearTimeout(toastP.t);toastP.t=setTimeout(()=>e.hidden=true,3800);}
+
+// ---- login ----
+function pintarLogin(aviso){
+  document.body.dataset.rol='';$('.app').hidden=true;$('#loginBox').hidden=false;
+  if(aviso){$('#lErr').hidden=false;$('#lErr').textContent=aviso;}
+}
+// A short username becomes <usuario>@carga.invalid; anything with @ is a real e-mail used as is. Identity still comes from carga_contexto().
+const correoDe=id=>id.includes('@')?(/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(id)?id:null):/^[a-z0-9-]{2,40}$/.test(id)?id+'@'+DOMINIO_USUARIOS:null;
+const iniciarSesion=(email,clave)=>D.sb.auth.signInWithPassword({email,password:clave});
+$('#fLogin').addEventListener('submit',async e=>{e.preventDefault();
+  const id=$('#lUser').value.replace(/\s/g,'').toLowerCase(),email=correoDe(id),clave=$('#lPass').value,err=t=>{$('#lErr').hidden=false;$('#lErr').textContent=t;};
+  $('#lPass').value='';
+  if(!D.sb){err('No se pudo cargar la conexión con la base de datos. Revisa internet y recarga la página.');return;}
+  if(!email){err(id.includes('@')?'Ese correo no tiene un formato válido.':'Usuario o clave incorrectos.');return;}
+  if(!clave){err('Usuario o clave incorrectos.');return;}
+  const btn=e.submitter||$('#fLogin button[type=submit]');if(btn)btn.disabled=true;
+  let error=null;try{({error}=await iniciarSesion(email,clave));}catch(x){error=x||{};}
+  if(btn)btn.disabled=false;
+  if(error){const m=String(error.message||'');err(/rate|too many/i.test(m)?'Demasiados intentos. Espera unos minutos.':/fetch|network/i.test(m)?'No se pudo conectar. Revisa tu conexión e intenta de nuevo.':'Usuario o clave incorrectos.');$('#lPass').focus();return;}
+  $('#lErr').hidden=true;});
+// USUARIOS, TIENDAS and SUP are labels only: role and branch come from carga_contexto().
+function entrar(ctx){
+  const id=ctx.usuario,rol=ctx.rol;
+  U.user={id,rol,tienda:ctx.sucursal||undefined,nombre:USUARIOS[id]?.nombre||SUP[rol]||id};U.fecha=null;U.mesSup=MES_HOY;
+  document.body.dataset.rol=rol==='sucursal'?'sucursal':'sup';$('#loginBox').hidden=true;$('.app').hidden=false;$('#lErr').hidden=true;
+  state.filtro='todas';state.suc=rol==='sucursal'?tienda(ctx.sucursal).key:'';
+  derive();setTab(rol==='sucursal'?'carga':'resumen');
+}
+// scope 'local' ends only this browser's session (a branch user may be open on several computers). supabase-js 2.45.4 (auth-js 2.65.0)
+// still calls the logout endpoint and, if that fails for a reason other than 401/403/404 (e.g. no internet), returns {error} and keeps
+// the stored session without notifying: then the stored session is removed here and the page goes back to the login anyway.
+async function salir(){
+  let error=null;try{({error}=await D.sb.auth.signOut({scope:'local'}));}catch(e){error=e||{};}
+  if(error){borrarSesion();alCambiarSesion(null);}
+  else borrarSesion();   // also when it worked: nothing left in the other store
+}
+
+// ---- per-role chrome and the new views (runs after every Statistics render) ----
+const CUSTOM=['carga','cierre','control','meses','metas','productos'];
+function renderPropio(){
+  const u=U.user;if(!u)return;
+  const esSuc=u.rol==='sucursal',t=esSuc?tienda(u.tienda):null;
+  $('#sesion').innerHTML=`<span class="u-id">Usuario <b>${esc(u.id)}</b></span><span class="u-n">${esc(esSuc?'Sucursal '+t.label:u.nombre)}</span>
+    <span class="live ${D.modo==='compartido'?'on':''}" title="${D.modo==='compartido'?'En vivo':D.modo==='cargando'?'Conectando…':'Sin conexión'}"><i></i><span class="live-t">${D.modo==='compartido'?'En vivo':D.modo==='cargando'?'Conectando…':'Sin conexión'}</span></span>
+    <button class="btn sm" id="btnSalir" type="button">Cerrar sesión</button>`;
+  $('#btnSalir').onclick=salir;
+  const enCurso=!CUSTOM.includes(tab)&&mesActual()===mesStat(MES_HOY);
+  const curso=enCurso?`<b>${mesTxt(MES_HOY)} está en curso:</b> el cumplimiento se mide contra la meta a la fecha, es decir, la parte de la meta que corresponde a los días ya cargados.`:'';
+  const nota=(D.modo==='error'?esc(D.err)+'<br>':'')+curso;
+  $('#modoNote').hidden=!nota;$('#modoNote').innerHTML=nota;
+  if(esSuc){$('#resBar').hidden=true;$('#segF').hidden=true;$('#mesVer').hidden=true;
+    if(!CUSTOM.includes(tab)&&state.stores.size)$('#vSub').textContent=`${t.label} · `+$('#vSub').textContent;['noAnt','sinPareja'].forEach(i=>$('#'+i).hidden=true);
+    const m=mesTrabajo(t.id),falt=ultimoCargable(m)-cierresDe(t.id,m).length;$('#nPend').hidden=!(falt>0);$('#nPend').textContent=falt;}
+  else{const late=TIENDAS.filter(x=>{const m=mesTrabajo(x.id);return m<MES_HOY||(m===MES_HOY&&!D.cierres.has(x.id+'_'+ayerDe()));}).length;$('#nCtrl').hidden=!late;$('#nCtrl').textContent=late;
+    const ms=[...new Set([MES_HOY,...[...D.cierres.values()].map(r=>r.fecha.slice(0,7))])].sort().reverse();
+    $('#mesVer').hidden=CUSTOM.includes(tab);$('#mesVer').innerHTML=ms.map(m=>`<option value="${m}" ${m===U.mesSup?'selected':''}>${mesTxt(m)}</option>`).join('');}
+  if(!CUSTOM.includes(tab)){BORR.clave='';BORR.v={};return;}   // leaving the loading views drops unsaved typing
+  $('#vacio').hidden=true;$('#viewEmpty').hidden=true;
+  ({carga:vCarga,cierre:vCierre,control:vControl,meses:vMeses,metas:vMetas,productos:vProductos})[tab]();
+  reponerBorrador();
+}
+const ayerDe=()=>{const d=new Date(HOY+'T12:00:00');d.setDate(d.getDate()-1);return isoD(d);};
+const horaTxt=ts=>new Date(ts).toLocaleTimeString('es-VE',{hour:'numeric',minute:'2-digit',timeZone:ZONA});
+const diaTxt=ts=>new Date(ts).toLocaleDateString('es-VE',{timeZone:ZONA});
+$('#mesVer').addEventListener('change',e=>{U.mesSup=e.target.value;derive();render();});
+
+// -- branch: daily close --
+function vCarga(){
+  const t=tienda(U.user.tienda),m=mesTrabajo(t.id),n=diasDe(m),tope=ultimoCargable(m),rs=cierresDe(t.id,m),hechos=new Set(rs.map(r=>r.fecha));
+  const faltan=[];for(let d=1;d<=tope;d++){const f=`${m}-${pad2(d)}`;if(!hechos.has(f))faltan.push(f);}
+  if(!U.fecha||!U.fecha.startsWith(m)||Number(U.fecha.slice(8))>tope)U.fecha=faltan[0]||(tope?`${m}-${pad2(tope)}`:null);
+  $('#vSub').textContent=`${t.label} · mes en curso: ${mesTxt(m)} · ${rs.length} de ${n} días cargados`;
+  if(!tope){$('#cargaBox').innerHTML=`<p class="note">Cerraste el mes anterior. ${mesTxt(m)} empieza el día 1; ese día ya podrás cargar el primer cierre.</p>`;return;}
+  // Without this month's goal the server refuses closes (CARGA_SIN_META): show the calendar and a notice instead of the form.
+  const meta=metaDe(t,m),diaria=meta/n,prev=D.cierres.get(t.id+'_'+U.fecha),vMes=rs.reduce((a,r)=>a+r.farm+r.misc,0),facMes=rs.reduce((a,r)=>a+r.fac,0),tkMes=facMes?vMes/facMes:null;
+  const listo=faltan.length===0&&tope===n;
+  $('#cargaBox').innerHTML=`${listo?`<div class="note ok-n">Cargaste todos los días de ${mesTxt(m)}. <button class="btn sm primary" data-tab2="cierre">Cerrar el mes</button></div>`:faltan.length?`<p class="note warn">Faltan ${faltan.length} día${faltan.length>1?'s':''} por cargar en ${mesTxt(m)}.</p>`:''}
+  <div class="card"><div class="card-h"><div><h2>${mesTxt(m)}</h2><p>Verde: cargado · elige un día para cargarlo o corregirlo</p></div></div>
+    <div class="dias">${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(x=>`<span class="dh">${x}</span>`).join('')}
+    ${'<span></span>'.repeat(new Date(m+'-01T12:00:00').getDay())}${Array.from({length:n},(_,i)=>{const f=`${m}-${pad2(i+1)}`;return `<button type="button" data-f="${f}" class="${hechos.has(f)?'ok':''} ${f===U.fecha?'sel':''}" ${i+1>tope?'disabled':''}>${i+1}<small>${hechos.has(f)?'listo':i+1>tope?'':'falta'}</small></button>`;}).join('')}</div></div>
+  ${meta==null?`<p class="note warn" id="sinMeta">La dirección todavía no cargó la meta de ${mesTxt(m)} para tu sucursal. Cuando la cargue podrás guardar el cierre.</p>`:`<div class="body"><form class="card" id="fC" novalidate data-ts="${prev?.ts??''}"><div class="card-h"><div><h2>Cierre del ${fechaL(U.fecha)}</h2><p>${prev?`Ya cargado por <b>${esc(prev.usuario)}</b>. Si cambias algo y guardas, se actualiza.`:'Los datos salen del cierre de caja del día'}</p></div></div>
+    <div class="form">
+    <label>Venta farmacia ($)<input id="iFarm" inputmode="decimal" placeholder="5420,00"></label>
+    <label>Venta misceláneos ($)<input id="iMisc" inputmode="decimal" placeholder="1310,00"></label>
+    <label>Clientes atendidos<input id="iCli" inputmode="numeric" placeholder="640"></label>
+    <label>Facturas emitidas<input id="iFac" inputmode="numeric" placeholder="672"><small>0 solo si la sucursal no abrió ese día</small></label>
+    <label>Unidades vendidas<input id="iUni" inputmode="numeric" placeholder="1890"></label>
+    <label>Incidencias en venta<input id="iInc" inputmode="numeric" placeholder="0"><small>Reportes con errores o fuera de tiempo</small></label>
+    <label class="full">Comentario del día <small>Opcional</small><textarea id="iCom" rows="2" placeholder="Día de pago de bonos, mucha afluencia en la tarde."></textarea></label>
+    <p class="err-t full" id="fErr" hidden></p>
+    <div class="full"><button class="btn primary" type="submit">${prev?'Actualizar cierre':'Guardar cierre'}</button></div></div></form>
+  <div class="card"><h2>Así queda tu día</h2><div>
+    <div class="prow"><span>Venta total</span><b id="pV">—</b></div><div class="prow"><span>Meta diaria</span><b>${f$(diaria)}</b></div>
+    <div class="prow"><span>Cumplimiento del día</span><b id="pC">—</b></div><div class="prow"><span>Ticket promedio</span><b id="pT">—</b></div>
+    <div class="prow"><span>${t.min==null?'Ticket mínimo':`Mínimo del grupo ${t.grupo}`}</span><b>${t.min==null?'Sin mínimo (canal)':f$(t.min)}</b></div></div><ul class="alerts" id="pA"></ul>
+    <p class="sub" style="font-size:.82rem">Al guardar, gerencia general, vicepresidencia y presidencia lo ven en su tablero al instante.</p></div></div>`}`;
+  document.querySelectorAll('#cargaBox [data-f]').forEach(b=>b.addEventListener('click',()=>{U.fecha=b.dataset.f;render();}));
+  document.querySelectorAll('#cargaBox [data-tab2]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab2)));
+  if(meta==null)return;
+  const F={iFarm:'farm',iMisc:'misc',iCli:'cli',iFac:'fac',iUni:'unid',iInc:'inc'};
+  // data-base: the server's values this form was painted with (see reponerBorrador).
+  Object.entries(F).forEach(([i,k])=>$('#'+i).value=$('#'+i).dataset.base=prev?numTxt(prev[k]):'');$('#iCom').value=$('#iCom').dataset.base=prev?.com||'';
+  const val=i=>leerNum($('#'+i).value);
+  const upd=()=>{const fa=val('iFarm'),mi=val('iMisc'),fac=val('iFac'),v=(fa||0)+(mi||0),tk=fac>0&&v?v/fac:null,cli=val('iCli'),a=[];
+    $('#pV').textContent=fa!=null||mi!=null?f$(v):'—';$('#pC').textContent=v?fP(v/diaria):'—';$('#pC').className=v?(v>=diaria?'up':'down'):'';
+    $('#pT').textContent=tk?f$(tk):'—';$('#pT').className=tk&&t.min!=null?(tk>=t.min?'up':'down'):'';
+    if(fa===0&&mi===0&&cli===0&&fac===0&&val('iUni')===0)a.push(['a','Día sin operación','Se guarda con todo en 0 y cuenta como día cargado.']);
+    if(tk&&tkMes&&(tk>tkMes*1.8||tk<tkMes/1.8))a.push(['a','Revisa venta y facturas',`El ticket del día (${f$(tk)}) se aleja mucho del promedio del mes (${f$(tkMes)}).`]);
+    if(cli&&fac&&cli>fac*1.3)a.push(['a','Más clientes que facturas','Normalmente se parecen. Confirma los dos números.']);
+    if(v&&v>=diaria)a.push(['g','Día en meta',`Superaste la meta diaria por ${f$(v-diaria)}.`]);
+    $('#pA').innerHTML=a.map(([c,x,d])=>`<li class="${c}"><b>${x}</b>${d}</li>`).join('');};
+  Object.keys(F).forEach(i=>$('#'+i).addEventListener('input',()=>{$('#'+i).classList.remove('err');upd();}));upd();
+  $('#fC').addEventListener('submit',async e=>{e.preventDefault();
+    // Counts are whole numbers in the database (clientes, facturas, unidades, incidencias).
+    const bad=Object.keys(F).filter(i=>{const x=val(i);return x==null||!isFinite(x)||x<0||(i!=='iFarm'&&i!=='iMisc'&&!Number.isInteger(x));});
+    bad.forEach(i=>$('#'+i).classList.add('err'));
+    if(bad.length){$('#fErr').hidden=false;$('#fErr').textContent='Completa los campos marcados con números válidos. Clientes, facturas, unidades e incidencias van sin decimales.';return;}
+    // A day without operation is all zeros; zero invoices with sales, customers or units is a typo.
+    if(val('iFac')===0&&!['iFarm','iMisc','iCli','iUni'].every(i=>val(i)===0)){$('#iFac').classList.add('err');$('#fErr').hidden=false;$('#fErr').textContent=MSG_FAC;return;}
+    // The day changed on the server while this form was open (another computer of the branch): repaint, keep the typing and warn.
+    if(String(D.cierres.get(t.id+'_'+U.fecha)?.ts??'')!==$('#fC').dataset.ts){BORR.aviso=true;derive();render();return;}
+    const r={suc:t.id,fecha:U.fecha,farm:val('iFarm'),misc:val('iMisc'),cli:val('iCli'),fac:val('iFac'),unid:val('iUni'),inc:val('iInc'),com:$('#iCom').value.trim().slice(0,500),usuario:U.user.id,ts:Date.now()};
+    const btn=e.submitter;if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+    try{await escribir('cierres',t.id+'_'+r.fecha,r);toastP(`Cierre del ${fechaL(r.fecha)} guardado.`);U.fecha=null;render();}
+    catch(err){if(btn){btn.disabled=false;btn.textContent=prev?'Actualizar cierre':'Guardar cierre';}$('#fErr').hidden=false;$('#fErr').textContent=errTxt(err)+' Tus datos siguen en el formulario.';}});
+}
+
+// -- branch: month close --
+function vCierre(){
+  const t=tienda(U.user.tienda),m=mesTrabajo(t.id),n=diasDe(m),r=registro(t,m),rs=r.coment,completo=rs.length===n&&ultimoCargable(m)===n;
+  const cerradosT=[...D.meses.entries()].filter(([k,v])=>k.startsWith(t.id+'_')&&v.cerrado).map(([k,v])=>({m:k.slice(t.id.length+1),...v})).sort((a,b)=>b.m.localeCompare(a.m));
+  $('#vSub').textContent=`${t.label} · ${mesTxt(m)}`;
+  $('#cierreBox').innerHTML=`${completo?'':`<p class="note warn">Para cerrar ${mesTxt(m)} tienen que estar cargados los ${n} días. Llevas ${rs.length}.${ultimoCargable(m)<n?' El mes todavía no termina.':''}</p>`}
+  <div class="kpis">${kpi('Venta del mes','money',f$(r.total),r.metaMes?`${fP(r.total/r.metaMes)} de la meta de ${f$(r.metaMes)}`:'Sin meta cargada',true)}${kpi('Días cargados','target',`${rs.length} de ${n}`,completo?'Mes completo':'Faltan días')}
+    ${kpi('Ticket promedio','ticket',f$(r.ticket),t.min==null?'Canal sin mínimo de grupo':`Mínimo del grupo ${f$(t.min)}`)}${kpi('Incidencias en venta','alerta',fN(r.inc),'Límite: 2 al mes')}</div>
+  <form class="card" id="fM" novalidate><div class="card-h"><div><h2>Cerrar ${mesTxt(m)}</h2><p>Al cerrar se genera el Excel del mes y la carga pasa a ${mesTxt(sig(m))}.</p></div></div>
+    <div class="form"><label class="full">Análisis del mes <small>Qué pasó y qué acciones tomaste. Lo verá gerencia en "Sucursal".</small><textarea id="mAn" rows="4" placeholder="Se cumplió la meta gracias a los días de pago de bonos…">${esc(r.analisis)}</textarea></label>
+    <fieldset class="full lst"><legend>5 más vendidos <small>Opcional, hasta 5</small></legend>${[0,1,2,3,4].map(i=>`<input id="top${i}" aria-label="Más vendido ${i+1}" value="${esc(r.top[i]||'')}" placeholder="${i+1}.">`).join('')}</fieldset>
+    <fieldset class="full lst"><legend>5 menos vendidos <small>Opcional, hasta 5</small></legend>${[0,1,2,3,4].map(i=>`<input id="rot${i}" aria-label="Menos vendido ${i+1}" value="${esc(r.sinRot[i]||'')}" placeholder="${i+1}.">`).join('')}</fieldset>
+    <p class="err-t full" id="mErr" hidden></p>
+    <div class="full" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" type="submit" ${completo?'':'disabled'}>Cerrar mes y descargar Excel</button>
+      <button class="btn" type="button" id="parcial">Descargar Excel del avance</button></div></div></form>
+  <div class="card"><div class="card-h"><div><h2>Meses cerrados</h2><p>Descarga de nuevo el Excel de cualquier mes cerrado</p></div></div>
+    ${cerradosT.length?`<div class="tbl"><table><thead><tr><th>Mes</th><th>Cerrado por</th><th>Fecha</th><th></th></tr></thead><tbody>${cerradosT.map(c=>`<tr><td>${mesTxt(c.m)}</td><td>${esc(c.usuario)}</td><td>${diaTxt(c.ts)}</td><td><button class="btn sm" data-x="${c.m}">Descargar Excel</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">Todavía no has cerrado ningún mes.</p>'}</div>`;
+  const nom=mm=>`ESTADISTICA DE VENTAS ${mesStat(mm)} ${t.label.toUpperCase()}`;
+  $('#parcial').addEventListener('click',()=>bajarExcel([t.id],m,nom(m)+' (avance)'));
+  document.querySelectorAll('#cierreBox [data-x]').forEach(b=>b.addEventListener('click',()=>bajarExcel([t.id],b.dataset.x,nom(b.dataset.x))));
+  $('#fM').addEventListener('submit',async e=>{e.preventDefault();const an=$('#mAn').value.trim();
+    if(!an){$('#mErr').hidden=false;$('#mErr').textContent='Escribe el análisis del mes antes de cerrarlo.';$('#mAn').focus();return;}
+    const top=[0,1,2,3,4].map(i=>$('#top'+i).value.trim()).filter(Boolean),sinRot=[0,1,2,3,4].map(i=>$('#rot'+i).value.trim()).filter(Boolean);
+    const btn=e.submitter||$('#fM button[type=submit]');btn.disabled=true;btn.textContent='Cerrando…';
+    try{await escribir('meses',t.id+'_'+m,{suc:t.id,mes:m,cerrado:true,analisis:an.slice(0,2000),top,sinRot,usuario:U.user.id,ts:Date.now()});
+      await bajarExcel([t.id],m,nom(m));toastP(`${mesTxt(m)} cerrado. Ahora cargas ${mesTxt(sig(m))}.`);U.fecha=null;setTab('carga');}
+    catch(err){btn.disabled=false;btn.textContent='Cerrar mes y descargar Excel';$('#mErr').hidden=false;$('#mErr').textContent=errTxt(err);}});
+}
+
+// -- supervisors: who loaded --
+function vControl(){
+  const f=U.fechaCtrl||ayerDe();
+  const rows=TIENDAS.map(t=>({t,r:D.cierres.get(t.id+'_'+f),m:mesTrabajo(t.id)})).sort((a,b)=>(!!a.r-!!b.r)||a.t.label.localeCompare(b.t.label)),ok=rows.filter(x=>x.r).length;
+  $('#vSub').textContent=`${fechaL(f)} · ${ok} de ${TIENDAS.length} sucursales cargaron · se actualiza solo`;
+  $('#controlBox').innerHTML=`<div class="card"><div class="card-h"><div><h2>Cierres del día</h2><p>Elige el día a revisar</p></div><label class="inl">Día <input type="date" id="cF" value="${f}" max="${HOY}"></label></div>
+    <p class="note ${ok===TIENDAS.length?'ok-n':'warn'}">${ok===TIENDAS.length?'Todas las sucursales cargaron este día.':`${TIENDAS.length-ok} sucursales no han cargado el cierre de este día.`}</p>
+    <div class="tbl"><table><thead><tr><th>Sucursal</th><th>Estado</th><th>Venta</th><th>Ticket</th><th>Clientes</th><th>Inc.</th><th>Cargó</th><th>Mes en curso</th></tr></thead><tbody>
+    ${rows.map(({t,r,m})=>{const v=r?r.farm+r.misc:null,tk=r&&r.fac?v/r.fac:null;return `<tr><td>${esc(t.label)}</td><td>${!r?'<span class="pill no">Pendiente</span>':r.fac===0?'<span class="pill warn-p">Sin operación</span>':'<span class="pill ok">Cargado</span>'}</td><td>${r?f$(v):'—'}</td>
+      <td class="${tk==null||t.min==null?'':tk>=t.min?'up':'down'}">${f$(tk)}</td><td>${r?fN(r.cli):'—'}</td><td>${r?(r.inc||'—'):'—'}</td><td>${r?`${esc(r.usuario)} · ${horaTxt(r.ts)}`:'—'}</td><td>${mesTxt(m)}${m<MES_HOY?' <span class="pill no">Atrasado</span>':''}</td></tr>`;}).join('')}</tbody></table></div></div>`;
+  $('#cF').addEventListener('change',e=>{if(e.target.value){U.fechaCtrl=e.target.value;render();}});
+}
+
+// -- supervisors: month closes and Excel --
+function vMeses(){
+  const m=U.mesMeses||U.mesSup,n=diasDe(m),puedeReabrir=D.cfg.reabren.includes(U.user.rol);
+  const ms=[...new Set([INICIO,MES_HOY,...[...D.cierres.values()].map(r=>r.fecha.slice(0,7))])].sort().reverse();
+  const rows=TIENDAS.map(t=>({t,rs:cierresDe(t.id,m),c:D.meses.get(t.id+'_'+m)})),cer=rows.filter(x=>x.c?.cerrado).length;
+  $('#vSub').textContent=`${mesTxt(m)} · ${cer} de ${TIENDAS.length} sucursales cerraron el mes`;
+  $('#mesesBox').innerHTML=`<div class="card"><div class="card-h"><div><h2>Cierres de ${mesTxt(m)}</h2><p>El Excel de cada sucursal sigue el formato "Estadística de ventas" y se puede subir al Statistics actual</p></div>
+    <div class="top-act"><select id="mM" aria-label="Mes">${ms.map(x=>`<option value="${x}" ${x===m?'selected':''}>${mesTxt(x)}</option>`).join('')}</select><button class="btn primary sm" id="todo">Excel de todas las sucursales</button></div></div>
+    <div class="tbl"><table><thead><tr><th>Sucursal</th><th>Estado</th><th>Días cargados</th><th>Venta</th><th>Cerrado por</th><th></th></tr></thead><tbody>
+    ${rows.map(({t,rs,c})=>`<tr><td>${esc(t.label)}</td><td>${c?.cerrado?'<span class="pill ok">Cerrado</span>':rs.length?'<span class="pill warn-p">En curso</span>':'<span class="pill no">Sin datos</span>'}</td><td>${rs.length} de ${n}</td>
+      <td>${rs.length?f$(rs.reduce((a,r)=>a+r.farm+r.misc,0)):'—'}</td><td>${c?.cerrado?`${esc(c.usuario)} · ${diaTxt(c.ts)}`:'—'}</td>
+      <td style="display:flex;gap:6px;justify-content:flex-end">${rs.length?`<button class="btn sm" data-x="${t.id}">Excel</button>`:''}${puedeReabrir&&c?.cerrado?(U.reArmado===t.id+'_'+m?`<button class="btn sm" data-re="${t.id}" data-armed="1">Confirmar reabrir</button>`:`<button class="btn sm" data-re="${t.id}">Reabrir</button>`):''}</td></tr>`).join('')}</tbody></table></div>
+    ${puedeReabrir?'<p class="sub" style="font-size:.82rem">Reabrir devuelve el mes a la sucursal para que corrija y lo vuelva a cerrar. Mientras esté reabierto, la sucursal no puede cargar el mes en curso.</p>':''}</div>`;
+  $('#mM').addEventListener('change',e=>{U.mesMeses=e.target.value;render();});
+  $('#todo').addEventListener('click',()=>{const ids=rows.filter(x=>x.rs.length).map(x=>x.t.id);if(!ids.length){toastP('Ninguna sucursal tiene cierres en este mes.');return;}bajarExcel(ids,m,`ESTADISTICA DE VENTAS ${mesStat(m)} TODAS LAS SUCURSALES`);});
+  document.querySelectorAll('#mesesBox [data-x]').forEach(b=>b.addEventListener('click',()=>{const t=tienda(b.dataset.x);bajarExcel([t.id],m,`ESTADISTICA DE VENTAS ${mesStat(m)} ${t.label.toUpperCase()}`);}));
+  document.querySelectorAll('#mesesBox [data-re]').forEach(b=>b.addEventListener('click',async()=>{
+    // The armed state lives in U so a repaint in between keeps it.
+    if(!b.dataset.armed){U.reArmado=b.dataset.re+'_'+m;b.dataset.armed='1';b.textContent='Confirmar reabrir';return;}
+    U.reArmado=null;
+    try{const id=b.dataset.re,c=D.meses.get(id+'_'+m);await escribir('meses',id+'_'+m,{...c,cerrado:false,reabierto:U.user.id,tsRe:Date.now()});toastP(`${tienda(id).label} vuelve a cargar ${mesTxt(m)}.`);}catch(err){toastP(errTxt(err));}}));
+}
+
+// -- supervisors: monthly goals (gerencia general, vicepresidencia and presidencia edit; admin only looks) --
+function vMetas(){
+  const m=U.mesMetas||MES_HOY,puede=['gerencia','vicepresidencia','presidencia'].includes(U.user.rol),doc=D.metas.get(m)||{};
+  const ms=[...new Set([INICIO,MES_HOY,sig(MES_HOY),...D.metas.keys()])].sort().reverse();
+  $('#vSub').textContent=`${mesTxt(m)} · Gerencia general, vicepresidencia y presidencia cargan las metas`;
+  // A closed month's goal can't change (the server refuses it): those rows are disabled and still sent with their value, which counts as no change.
+  $('#metasBox').innerHTML=`<form class="card" id="fMe" novalidate><div class="card-h"><div><h2>Metas de ${mesTxt(m)}</h2><p>Sin meta, la sucursal no puede cargar cierres</p></div>
+    <select id="meM" aria-label="Mes">${ms.map(x=>`<option value="${x}" ${x===m?'selected':''}>${mesTxt(x)}</option>`).join('')}</select></div>
+    <div class="metas-g">${TIENDAS.map(t=>{const cer=cerrado(t.id,m);return `<label><span>${esc(t.label)}${cer?' <span class="pill ok">Cerrado</span>':''}</span><input id="me-${t.id}" inputmode="decimal" value="${doc[t.id]!=null?numTxt(doc[t.id]):''}" data-base="${doc[t.id]!=null?numTxt(doc[t.id]):''}" placeholder="" ${puede&&!cer?'':'disabled'}></label>`;}).join('')}</div>
+    <p class="err-t" id="meErr" hidden></p>${puede?'<div><button class="btn primary" type="submit">Guardar metas</button></div>':''}</form>`;
+  $('#meM').addEventListener('change',e=>{U.mesMetas=e.target.value;render();});
+  // Start from the goals on the server now and apply only the fields this person changed: anything another person saved meanwhile stays,
+  // and a goal is removed only when its field was emptied. Closed months' rows are disabled and never sent as a change.
+  $('#fMe').addEventListener('submit',async e=>{e.preventDefault();
+    const actual=D.metas.get(m)||{},txt=id=>actual[id]!=null?numTxt(actual[id]):'',out={...actual},bad=[],quitar=[];
+    const cambiados=TIENDAS.filter(t=>{const x=$('#me-'+t.id);return !x.disabled&&!cerrado(t.id,m)&&x.value!==x.dataset.base;});
+    // Changed here and also changed on the server since this form was painted: repaint so the person sees both and decides.
+    if(cambiados.some(t=>txt(t.id)!==$('#me-'+t.id).dataset.base)){derive();render();return;}
+    cambiados.forEach(t=>{const v=leerNum($('#me-'+t.id).value);
+      if(v==null){if(cierresDe(t.id,m).length)quitar.push(t.label);else delete out[t.id];return;}
+      if(!isFinite(v)||v<=0)bad.push(t.label);else out[t.id]=v;});
+    if(quitar.length){$('#meErr').hidden=false;$('#meErr').textContent='No se puede quitar la meta de: '+quitar.join(', ')+'. Ya cargaron cierres en este mes.';return;}
+    if(bad.length){$('#meErr').hidden=false;$('#meErr').textContent='Revisa estas metas: '+bad.join(', ')+'.';return;}
+    try{await escribir('metas',m,out);toastP(`Metas de ${mesTxt(m)} guardadas.`);}catch(err){$('#meErr').hidden=false;$('#meErr').textContent=errTxt(err);}});
+}
+
+// -- supervisors: the 5 best and 5 worst sellers each store wrote when closing the month, crossed across the chain --
+// Names are typed by hand, so they group by a key without accents, case, spaces or punctuation ("Acetaminofén 500 mg" = "ACETAMINOFEN 500MG");
+// each product shows its most used spelling. Everything that comes from the database is escaped.
+const claveProd=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'');
+function cruceProductos(m){
+  const P=new Map(),filas=[];
+  const anotar=(t,lista,lado)=>lista.forEach((txt,i)=>{const k=claveProd(txt);if(!k)return;
+    if(!P.has(k))P.set(k,{k,formas:new Map(),mas:[],menos:[]});const p=P.get(k);
+    const f=String(txt).trim().replace(/\s+/g,' ');p.formas.set(f,(p.formas.get(f)||0)+1);
+    if(!p[lado].some(x=>x.t===t))p[lado].push({t,pos:i+1});});
+  for(const t of TIENDAS){const c=D.meses.get(t.id+'_'+m);if(!c?.cerrado)continue;
+    const top=(c.top||[]).filter(x=>String(x).trim()),bajo=(c.sinRot||[]).filter(x=>String(x).trim());
+    filas.push({t,top,bajo});anotar(t,top,'mas');anotar(t,bajo,'menos');}
+  for(const p of P.values())p.nombre=[...p.formas.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+  const prom=l=>l.reduce((s,x)=>s+x.pos,0)/l.length;
+  const rank=lado=>[...P.values()].filter(p=>p[lado].length).sort((a,b)=>b[lado].length-a[lado].length||prom(a[lado])-prom(b[lado])||a.nombre.localeCompare(b.nombre));
+  const cruce=[...P.values()].filter(p=>p.mas.length&&p.menos.length).sort((a,b)=>(b.mas.length+b.menos.length)-(a.mas.length+a.menos.length)||a.nombre.localeCompare(b.nombre));
+  return{mas:rank('mas'),menos:rank('menos'),cruce,filas};
+}
+const sucPos=l=>l.map(x=>`${x.t.label} (${x.pos}.º)`).join(', ');
+function vProductos(){
+  const ms=[...new Set([...D.meses.values()].filter(c=>c.cerrado).map(c=>c.mes))].sort().reverse();
+  if(!ms.length){$('#vSub').textContent='Sin meses cerrados';
+    $('#productosBox').innerHTML='<div class="card"><h2>Todavía no hay meses cerrados</h2><p class="sub">Cuando una sucursal cierre su mes con sus 5 más vendidos y sus 5 menos vendidos, aquí verás el cruce de toda la cadena.</p></div>';return;}
+  const m=ms.includes(U.mesProd)?U.mesProd:ms[0],R=cruceProductos(m),sinListas=R.filas.filter(x=>!x.top.length&&!x.bajo.length);
+  $('#vSub').textContent=`${mesTxt(m)} · ${R.filas.length} de ${TIENDAS.length} cerraron el mes · ${R.cruce.length} producto${R.cruce.length===1?'':'s'} para trasladar`;
+  const tabla=(lado,titulo,sub)=>{const L=R[lado];return `<div class="card" id="pr-${lado}"><div class="card-h"><div><h2>${titulo}</h2><p>${sub}</p></div></div>
+    ${L.length?`<div class="tbl"><table><thead><tr><th>Producto</th><th>Sucursales</th><th>En cuáles (posición)</th></tr></thead><tbody>${L.map(p=>`<tr><td>${esc(p.nombre)}</td><td>${p[lado].length}</td><td style="white-space:normal">${esc(sucPos(p[lado]))}</td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">Ninguna sucursal llenó esta lista.</p>'}</div>`;};
+  $('#productosBox').innerHTML=`<div class="card-h"><div></div><select id="prM" aria-label="Mes">${ms.map(x=>`<option value="${x}" ${x===m?'selected':''}>${mesTxt(x)}</option>`).join('')}</select></div>
+  <div class="card" id="prCruce" style="border-left:4px solid var(--accent)"><div class="card-h"><div><h2>Oportunidad de traslado</h2><p>Productos que están entre los 5 más vendidos de unas sucursales y entre los 5 menos vendidos de otras</p></div>
+    <button class="btn primary sm" id="prExcel" type="button">Descargar cruce en Excel</button></div>
+    ${R.cruce.length?`<div class="tbl"><table><thead><tr><th>Producto</th><th>Se vende bien en</th><th>Se vende poco en</th></tr></thead><tbody>${R.cruce.map(p=>`<tr><td><b>${esc(p.nombre)}</b></td><td style="white-space:normal"><span class="up">${esc(sucPos(p.mas))}</span></td><td style="white-space:normal"><span class="down">${esc(sucPos(p.menos))}</span></td></tr>`).join('')}</tbody></table></div>`
+      :'<p class="sub">Este mes ningún producto aparece a la vez entre los más vendidos de una sucursal y los menos vendidos de otra.</p>'}</div>
+  ${tabla('mas','5 más vendidos de la cadena','Cada producto con el número de sucursales donde está entre sus 5 más vendidos')}
+  ${tabla('menos','5 menos vendidos de la cadena','Cada producto con el número de sucursales donde está entre sus 5 menos vendidos')}
+  <div class="card" id="prSuc"><div class="card-h"><div><h2>Por sucursal</h2><p>Las dos listas que escribió cada sucursal al cerrar ${mesTxt(m)}</p></div></div>
+    ${sinListas.length?`<p class="note warn">Cerraron el mes sin llenar sus listas: ${esc(sinListas.map(x=>x.t.label).join(', '))}.</p>`:''}
+    <div class="tbl"><table><thead><tr><th>Sucursal</th><th>5 más vendidos</th><th>5 menos vendidos</th></tr></thead><tbody>${R.filas.map(x=>`<tr><td>${esc(x.t.label)}</td><td style="white-space:normal">${x.top.length?esc(x.top.map((p,i)=>`${i+1}. ${p}`).join(' · ')):'—'}</td><td style="white-space:normal">${x.bajo.length?esc(x.bajo.map((p,i)=>`${i+1}. ${p}`).join(' · ')):'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $('#prM').addEventListener('change',e=>{U.mesProd=e.target.value;render();});
+  $('#prExcel').addEventListener('click',()=>bajarCruce(m));
+}
+function bajarCruce(m){
+  if(!window.XLSX){toastP('No se pudo cargar el generador de Excel. Recarga la página.');return;}
+  const R=cruceProductos(m),wb=XLSX.utils.book_new(),hojaDe=(aoa,cols)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=cols.map(w=>({wch:w}));return ws;};
+  XLSX.utils.book_append_sheet(wb,hojaDe([[`CRUCE DE PRODUCTOS ${mesStat(m)}`],[],['PRODUCTO','SE VENDE BIEN EN','SE VENDE POCO EN'],...R.cruce.map(p=>[p.nombre,sucPos(p.mas),sucPos(p.menos)])],[36,60,60]),'Cruce');
+  for(const [lado,nom] of [['mas','5 mas vendidos'],['menos','5 menos vendidos']])
+    XLSX.utils.book_append_sheet(wb,hojaDe([['PRODUCTO','SUCURSALES','EN CUALES (POSICION)'],...R[lado].map(p=>[p.nombre,p[lado].length,sucPos(p[lado])])],[36,12,80]),nom);
+  XLSX.utils.book_append_sheet(wb,hojaDe([['SUCURSAL','5 MAS VENDIDOS','5 MENOS VENDIDOS'],...R.filas.map(x=>[x.t.label,x.top.join(' | '),x.bajo.join(' | ')])],[22,70,70]),'Por sucursal');
+  guardarLibro(wb,`CRUCE DE PRODUCTOS ${mesStat(m)}`);
+}
+
+// ---- start: the login only appears once we know there is no session ----
+document.querySelectorAll('.app [id]').forEach(el=>{if(!el.children.length)LIMPIO.set(el,el.innerHTML);});
+conectar();
+</script>
+<script>
+// Installable app: register the service worker (sw.js, scope ./) only on https or localhost. Any failure is ignored: the page works without it.
+if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1','[::1]'].includes(location.hostname))){
+  const registrarSW=()=>navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(()=>{});
+  document.readyState==='complete'?registrarSW():addEventListener('load',registrarSW);
+}
+</script>

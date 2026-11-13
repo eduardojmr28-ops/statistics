@@ -1,0 +1,26 @@
+Librerías de terceros servidas desde este mismo sitio (no desde un CDN), para que la página no dependa
+de un servidor ajeno que podría ser alterado. No se editan a mano: para actualizar una, se reemplaza el
+archivo por el de la nueva versión publicada en npm y se cambia aquí su versión y su huella SHA-256.
+Si cambia algún archivo, sube también VERSION en ../sw.js.
+
+xlsx.full.min.js
+  Paquete: xlsx (SheetJS Community Edition) 0.20.3
+  Origen: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz -> dist/xlsx.full.min.js
+          (la misma versión que usan las pruebas, ver devDependencies en package.json)
+  Licencia: Apache-2.0
+  SHA-256: cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41
+
+chart.umd.min.js
+  Paquete: chart.js 4.4.1 (npm)
+  Origen: npm install --no-save chart.js@4.4.1 -> dist/chart.umd.js (ya viene minificado; es el mismo
+          contenido que el CDN publica como chart.umd.min.js)
+  Licencia: MIT (c) 2023 Chart.js Contributors
+  SHA-256: 74401d738dd3e03ee5dfb3b6841210fe2c4ead8a960c4011ca4ba0b78a9fd8f3
+
+supabase.min.js
+  Paquete: @supabase/supabase-js 2.45.4 (npm)
+  Origen: npm install --no-save @supabase/supabase-js@2.45.4 -> dist/umd/supabase.js (UMD minificado)
+          El paquete trae además dist/umd/591.supabase.js: solo se pide cuando no existe WebSocket nativo
+          (Node), nunca en un navegador, así que no se copia.
+  Licencia: MIT (c) Supabase
+  SHA-256: 8596965fe918e656600a1b568d3a168f5c0d3d22a600886bb6f44a6555db01e7
